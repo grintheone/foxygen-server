@@ -31,7 +31,7 @@ type DatabaseConfig struct {
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Address:      GetEnv("SERVER_ADDRESS", ":8080"),
+			Address:      GetEnv("SERVER_ADDRESS", ":443"),
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 			IdleTimeout:  1 * time.Minute,

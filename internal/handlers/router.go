@@ -20,6 +20,12 @@ func NewRouter(accountService *services.AccountService, authService *services.Au
 	r.Use(middleware.Recoverer) // Recovers from panics
 	r.Use(middleware.RequestID) // Adds a request ID to each request
 
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("tls working"))
+		})
+	})
+
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", authHandler.Login) // Main handler for further operations with the app
 		r.Post("/refreshToken", authHandler.Refresh)
