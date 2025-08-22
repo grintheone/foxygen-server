@@ -26,7 +26,10 @@ type LoginResponse struct {
 	ExpiresIn    int64  `json:"expiresIn"` // Seconds until access token expiry
 }
 
-var ErrInvalidCredentials = errors.New("invalid username or password")
+var (
+	ErrInvalidCredentials = errors.New("invalid username or password")
+	ErrInvalidToken       = errors.New("invalid token")
+)
 
 type AuthService struct {
 	accountService *AccountService
@@ -80,10 +83,6 @@ func (s *AuthService) Authorize(ctx context.Context, username, password string) 
 		dummyHash := "$2a$10$dummyhashdummyhashdummyhashdummyhashdummyhashdummyha"
 		bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(password))
 		return nil, ErrInvalidCredentials
-	}
-
-	if user.Disabled {
-		return nil, errors.New("account is disabled")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
@@ -141,9 +140,6 @@ func (s *AuthService) RefreshAccessToken(ctx context.Context, refreshTokenString
 	}
 	if user == nil {
 		return nil, errors.New("user no longer exists")
-	}
-	if user.Disabled {
-		return nil, errors.New("account is disabled")
 	}
 
 	// Generate a new access token

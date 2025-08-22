@@ -21,37 +21,27 @@ func NewRouter(accountService *services.AccountService, authService *services.Au
 	r.Use(middleware.RequestID) // Adds a request ID to each request
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("tls working"))
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/login", authHandler.Login) // Main handler for further operations with the app
+			r.Post("/refreshToken", authHandler.Refresh)
 		})
-	})
 
-	r.Route("/auth", func(r chi.Router) {
-		r.Post("/login", authHandler.Login) // Main handler for further operations with the app
-		r.Post("/refreshToken", authHandler.Refresh)
-	})
+		r.Route("/account", func(r chi.Router) {
+			r.Use(middlewares.AuthMiddleware(authService))
 
-	// Router that requires authentication
-	r.Route("/app", func(r chi.Router) {
-		r.Use(middlewares.AuthMiddleware(authService))
+			r.Patch("/password", accountHandler.ChangePassword)
+		})
 
-		// Main app handlers
-	})
+		// Router that requires authentication and admin role
+		r.Route("/admin", func(r chi.Router) {
+			r.Use(middlewares.AuthMiddleware(authService))
+			r.Use(middlewares.RequireRole("admin"))
 
-	// Protected router for account specific operations
-	r.Route("/account", func(r chi.Router) {
-		r.Use(middlewares.AuthMiddleware(authService))
-
-		r.Patch("/change-password", accountHandler.ChangePassword)
-	})
-
-	// Router that requires authentication and admin role
-	r.Route("/admin", func(r chi.Router) {
-		r.Use(middlewares.AuthMiddleware(authService))
-		r.Use(middlewares.RequireRole("admin"))
-
-		r.Post("/create-account", accountHandler.CreateAccount)
-		r.Patch("/change-account-status", accountHandler.ChangeAccountStatus)
+			r.Route("/account", func(r chi.Router) {
+				r.Post("/", accountHandler.CreateAccount)
+				r.Patch("/status", accountHandler.ChangeAccountStatus)
+			})
+		})
 	})
 
 	return r

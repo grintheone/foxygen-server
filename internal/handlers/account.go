@@ -16,29 +16,29 @@ type AccountHandler struct {
 
 func (h *AccountHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	var request struct {
-		Username string   `json:"username"`
-		Password string   `json:"password"`
-		Database string   `json:"database"`
-		Roles    []string `json:"roles"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Database string `json:"database"`
+		Role     string `json:"role"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, &request) {
 		return
 	}
 
-	defer r.Body.Close()
-
-	// Call the service layer
-	newUser, err := h.accountService.CreateUser(r.Context(), request.Username, request.Password, request.Database, request.Roles)
+	newUser, err := h.accountService.CreateUser(
+		r.Context(),
+		request.Username,
+		request.Password,
+		request.Database,
+		request.Role,
+	)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newUser)
+	writeJSON(w, http.StatusCreated, newUser)
 }
 
 func (h *AccountHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {

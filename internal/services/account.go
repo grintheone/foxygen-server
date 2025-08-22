@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
@@ -20,39 +19,25 @@ func NewAccountService(ar *repository.AccountRepository) *AccountService {
 	return &AccountService{accountRepo: ar}
 }
 
-// CreateUser is called from your HTTP handler.
-// It takes the plain text password, hashes it, and defines the business rules for role assignment.
-func (s *AccountService) CreateUser(ctx context.Context, username, plainPassword, database string, requestedRoleNames []string) (*models.Account, error) {
-	// 1. Hash the password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(plainPassword), bcrypt.DefaultCost)
+func (s *AccountService) CreateUser(ctx context.Context, username, password, database string, role string) (*models.Account, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Map role NAMES to role IDs based on your business logic.
-	// This is better than letting the client send arbitrary role IDs.
-	var roleIDsToAssign []int
-	for _, roleName := range requestedRoleNames {
-		switch roleName {
-		case "admin":
-			roleIDsToAssign = append(roleIDsToAssign, 1)
-		case "coordinator":
-			roleIDsToAssign = append(roleIDsToAssign, 2)
-		case "user":
-			roleIDsToAssign = append(roleIDsToAssign, 3)
-		default:
-			// Reject unknown roles
-			return nil, errors.New("invalid role requested: " + roleName)
-		}
+	var roleID int
+
+	switch role {
+	case "admin":
+		roleID = 1
+	case "coordinator":
+		roleID = 2
+	case "user":
+		roleID = 3
+	default:
+		return nil, errors.New("invalid role requested: " + role)
 	}
 
-	// 3. Ensure every user has at least the 'user' role
-	hasUserRole := slices.Contains(roleIDsToAssign, 3)
-	if !hasUserRole {
-		roleIDsToAssign = append(roleIDsToAssign, 3) // Assign the basic 'user' role
-	}
-
-	// 4. Create the account model and call the repository
 	newAccount := &models.Account{
 		Username:     username,
 		Database:     database,
@@ -60,7 +45,7 @@ func (s *AccountService) CreateUser(ctx context.Context, username, plainPassword
 		Disabled:     false,
 	}
 
-	createdAccount, err := s.accountRepo.CreateAccountWithRoles(ctx, newAccount, roleIDsToAssign)
+	createdAccount, err := s.accountRepo.CreateAccountWithRoles(ctx, newAccount, roleID)
 	if err != nil {
 		return nil, err
 	}
@@ -70,8 +55,6 @@ func (s *AccountService) CreateUser(ctx context.Context, username, plainPassword
 	return createdAccount, nil
 }
 
-// GetUserByUsername is the public method called by the AuthService.
-// It handles the business logic for fetching a user.
 func (s *AccountService) GetAccountByUsername(ctx context.Context, username string) (*models.Account, error) {
 	if username == "" {
 		return nil, fmt.Errorf("username cannot be empty")
@@ -82,18 +65,13 @@ func (s *AccountService) GetAccountByUsername(ctx context.Context, username stri
 		return nil, fmt.Errorf("service error fetching user: %w", err)
 	}
 
-	// The repository returns nil if the user is not found.
-	// This is not an error, but a normal case we need to handle.
 	if account == nil {
 		return nil, nil
 	}
 
-	// You could add any additional business logic here.
-	// For example, checking if the account is disabled before returning it?
-	// Though the AuthService handles that, it might be better here.
-	// if account.Disabled {
-	// 	return nil, fmt.Errorf("account is disabled")
-	// }
+	if account.Disabled {
+		return nil, fmt.Errorf("account is disabled")
+	}
 
 	return account, nil
 }
@@ -106,6 +84,11 @@ func (s *AccountService) GetUserByID(ctx context.Context, userID uuid.UUID) (*mo
 	if account == nil {
 		return nil, nil
 	}
+
+	if account.Disabled {
+		return nil, fmt.Errorf("account is disabled")
+	}
+
 	return account, nil
 }
 
@@ -132,7 +115,6 @@ func (s *AccountService) ChangeAccountPassword(ctx context.Context, userID uuid.
 
 func (s *AccountService) ChangeAccountStatus(ctx context.Context, userID uuid.UUID, disabled bool) error {
 	err := s.accountRepo.ChangeAccountStatus(ctx, userID, disabled)
-	
 	if err != nil {
 		return err
 	}

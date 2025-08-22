@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/grintheone/foxygen-server/internal/services"
@@ -17,25 +16,21 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, &credentials) {
 		return
 	}
-
-	defer r.Body.Close()
 
 	response, err := h.authService.Authorize(r.Context(), credentials.Username, credentials.Password)
 	if err != nil {
 		if err == services.ErrInvalidCredentials {
-			http.Error(w, "Login failed", http.StatusUnauthorized)
+			clientError(w, http.StatusUnauthorized)
 		} else {
-			http.Error(w, "Login failed", http.StatusInternalServerError)
+			serverError(w, err)
 		}
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	writeJSON(w, http.StatusOK, response)
 }
 
 // Refresh handles token refresh requests
@@ -44,25 +39,20 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		RefreshToken string `json:"refreshToken"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+	if !decodeJSONBody(w, r, &request) {
 		return
 	}
 
-	defer r.Body.Close()
-
 	if request.RefreshToken == "" {
-		http.Error(w, "Refresh token is required", http.StatusBadRequest)
+		clientError(w, http.StatusBadRequest)
 		return
 	}
 
 	response, err := h.authService.RefreshAccessToken(r.Context(), request.RefreshToken)
 	if err != nil {
-		http.Error(w, "Token refresh failed: "+err.Error(), http.StatusUnauthorized)
+		serverError(w, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	writeJSON(w, http.StatusOK, response)
 }

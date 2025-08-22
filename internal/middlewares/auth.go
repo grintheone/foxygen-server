@@ -2,6 +2,8 @@ package middlewares
 
 import (
 	"context"
+	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -21,19 +23,24 @@ const (
 	UserRoleKey contextKey = "user_role"
 )
 
+func handleAuthError(w http.ResponseWriter, err error) {
+	log.Print(err)
+	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+}
+
 // AuthMiddleware creates a middleware that validates JWT tokens.
 func AuthMiddleware(authService *services.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				http.Error(w, "Authorization header required", http.StatusUnauthorized)
+				handleAuthError(w, errors.New("auth header is empty"))
 				return
 			}
 
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
-				http.Error(w, "Authorization header format must be 'Bearer {token}'", http.StatusUnauthorized)
+				handleAuthError(w, errors.New("invalid token type"))
 				return
 			}
 
@@ -41,7 +48,7 @@ func AuthMiddleware(authService *services.AuthService) func(http.Handler) http.H
 
 			token, err := authService.ValidateAccessToken(tokenString)
 			if err != nil {
-				http.Error(w, "Invalid token", http.StatusUnauthorized)
+				handleAuthError(w, err)
 				return
 			}
 
@@ -59,7 +66,7 @@ func AuthMiddleware(authService *services.AuthService) func(http.Handler) http.H
 				}
 				r = r.WithContext(ctx)
 			} else {
-				http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+				handleAuthError(w, errors.New("wrong claims"))
 				return
 			}
 
@@ -74,12 +81,14 @@ func RequireRole(requiredRole string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			role, ok := GetUserRoleFromContext(r.Context())
 			if !ok {
-				http.Error(w, "Access denied: no role information", http.StatusForbidden)
+				log.Print("Access denied: no role information")
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
 
 			if role != requiredRole {
-				http.Error(w, "Access denied: insufficient permissions", http.StatusForbidden)
+				log.Print("Access denied: insufficient permissions")
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
 
