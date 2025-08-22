@@ -98,9 +98,7 @@ func (s *AccountService) GetAccountByUsername(ctx context.Context, username stri
 	return account, nil
 }
 
-// GetUserByID is also useful for other parts of your app.
 func (s *AccountService) GetUserByID(ctx context.Context, userID uuid.UUID) (*models.Account, error) {
-	// Similar validation and error handling logic...
 	account, err := s.accountRepo.GetByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("service error fetching user by ID: %w", err)
@@ -109,4 +107,35 @@ func (s *AccountService) GetUserByID(ctx context.Context, userID uuid.UUID) (*mo
 		return nil, nil
 	}
 	return account, nil
+}
+
+func (s *AccountService) ChangeAccountPassword(ctx context.Context, userID uuid.UUID, new, old string) error {
+	account, err := s.accountRepo.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("service error fetching user by ID: %w", err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(old))
+	if err != nil {
+		return ErrInvalidCredentials
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(new), bcrypt.DefaultCost)
+
+	err = s.accountRepo.ChangeAccountPassword(ctx, userID, string(hashedPassword))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *AccountService) ChangeAccountStatus(ctx context.Context, userID uuid.UUID, disabled bool) error {
+	err := s.accountRepo.ChangeAccountStatus(ctx, userID, disabled)
+	
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

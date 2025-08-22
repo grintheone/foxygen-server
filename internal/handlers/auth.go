@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/grintheone/foxygen-server/internal/services"
@@ -23,10 +22,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.authService.Login(r.Context(), credentials.Username, credentials.Password)
+	defer r.Body.Close()
+
+	response, err := h.authService.Authorize(r.Context(), credentials.Username, credentials.Password)
 	if err != nil {
-		fmt.Println(err)
-		// Check the error type to return appropriate status codes
 		if err == services.ErrInvalidCredentials {
 			http.Error(w, "Login failed", http.StatusUnauthorized)
 		} else {
@@ -49,6 +48,8 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+
+	defer r.Body.Close()
 
 	if request.RefreshToken == "" {
 		http.Error(w, "Refresh token is required", http.StatusBadRequest)

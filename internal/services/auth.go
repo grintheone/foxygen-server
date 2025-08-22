@@ -15,7 +15,7 @@ import (
 // Define token expiration times
 const (
 	AccessTokenExpiry  = 30 * time.Minute
-	RefreshTokenExpiry = 14 * 24 * time.Hour // 14 days
+	RefreshTokenExpiry = 10 * 24 * time.Hour // 10 days
 )
 
 // LoginResponse defines the structure of a successful login response
@@ -51,7 +51,7 @@ func (s *AuthService) generateAccessToken(user *models.Account) (string, error) 
 		"sub":      user.UserID.String(),
 		"exp":      time.Now().Add(AccessTokenExpiry).Unix(),
 		"username": user.Username,
-		"roles":    user.GetRoleNames(),
+		"role":     user.Role,
 		"type":     "access", // Explicitly mark token type
 	})
 	return token.SignedString(s.jwtSecret)
@@ -68,9 +68,7 @@ func (s *AuthService) generateRefreshToken(user *models.Account) (string, error)
 	return token.SignedString(s.jwtSecret)
 }
 
-func (s *AuthService) Login(ctx context.Context, username, password string) (*LoginResponse, error) {
-	// 1. Find the user by username.
-	// You will need to create a `GetUserByUsername` method in your AccountService/Repository.
+func (s *AuthService) Authorize(ctx context.Context, username, password string) (*LoginResponse, error) {
 	user, err := s.accountService.GetAccountByUsername(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("authentication error: %w", err)
@@ -84,18 +82,15 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*Lo
 		return nil, ErrInvalidCredentials
 	}
 
-	// 2. Check if the account is disabled.
 	if user.Disabled {
 		return nil, errors.New("account is disabled")
 	}
 
-	// 3. Compare the provided password with the stored hash.
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
 		return nil, ErrInvalidCredentials
 	}
 
-	// Generate both access and refresh tokens
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
 		return nil, err
@@ -116,31 +111,9 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*Lo
 	return response, nil
 }
 
-// ValidateToken is used by your middleware to protect routes.
-func (s *AuthService) ValidateToken(tokenString string) (*jwt.Token, error) {
-	// Parse and validate the JWT token
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Validate the signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-		return s.jwtSecret, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if !token.Valid {
-		return nil, errors.New("invalid token")
-	}
-
-	return token, nil
-}
-
 // RefreshAccessToken validates a refresh token and issues a new access token
 func (s *AuthService) RefreshAccessToken(ctx context.Context, refreshTokenString string) (*LoginResponse, error) {
-	// Validate the refresh token
-	token, err := s.validateTokenAndType(refreshTokenString, "refresh")
+	token, err := s.ValidateRefreshToken(refreshTokenString)
 	if err != nil {
 		return nil, fmt.Errorf("invalid refresh token: %w", err)
 	}
@@ -156,7 +129,6 @@ func (s *AuthService) RefreshAccessToken(ctx context.Context, refreshTokenString
 		return nil, errors.New("user ID not found in token")
 	}
 
-	// Now parse the string into a UUID
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID format in token: %w", err)
@@ -180,12 +152,16 @@ func (s *AuthService) RefreshAccessToken(ctx context.Context, refreshTokenString
 		return nil, err
 	}
 
+	refreshToken, err := s.generateRefreshToken(user)
+	if err != nil {
+		return nil, err
+	}
+
 	response := &LoginResponse{
-		AccessToken: accessToken,
-		TokenType:   "Bearer",
-		ExpiresIn:   int64(AccessTokenExpiry.Seconds()),
-		// Return the same refresh token - it remains valid until its own expiration
-		RefreshToken: refreshTokenString,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    int64(AccessTokenExpiry.Seconds()),
 	}
 
 	return response, nil
@@ -193,7 +169,7 @@ func (s *AuthService) RefreshAccessToken(ctx context.Context, refreshTokenString
 
 // validateTokenAndType validates a token and checks its type claim
 func (s *AuthService) validateTokenAndType(tokenString, expectedType string) (*jwt.Token, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
@@ -224,4 +200,8 @@ func (s *AuthService) validateTokenAndType(tokenString, expectedType string) (*j
 // ValidateAccessToken is a wrapper for validating access tokens specifically
 func (s *AuthService) ValidateAccessToken(tokenString string) (*jwt.Token, error) {
 	return s.validateTokenAndType(tokenString, "access")
+}
+
+func (s *AuthService) ValidateRefreshToken(tokenString string) (*jwt.Token, error) {
+	return s.validateTokenAndType(tokenString, "refresh")
 }

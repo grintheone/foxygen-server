@@ -73,12 +73,26 @@ func (r *AccountRepository) CreateAccountWithRoles(ctx context.Context, account 
 }
 
 func (r *AccountRepository) GetByUsername(ctx context.Context, username string) (*models.Account, error) {
-	// Base query to get the user account
+	// query := `
+	//        SELECT * FROM accounts WHERE username = $1
+	//    `
+
 	query := `
-        SELECT * FROM accounts WHERE username = $1
+	   	SELECT
+	        a.user_id,
+	        a.username,
+	        a.database,
+	        a.disabled,
+	        a.password_hash,
+	        r.name as role
+	    FROM accounts a
+	    LEFT JOIN account_roles ar ON a.user_id = ar.user_id
+	    LEFT JOIN roles r ON ar.role_id = r.id
+	    WHERE a.username = $1;
     `
 
 	var account models.Account
+
 	err := r.db.GetContext(ctx, &account, query, username)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -90,22 +104,22 @@ func (r *AccountRepository) GetByUsername(ctx context.Context, username string) 
 	}
 
 	// Now fetch the roles for this user
-	rolesQuery := `
-        SELECT r.id, r.name, r.description
-        FROM roles r
-        INNER JOIN account_roles ar ON r.id = ar.role_id
-        WHERE ar.user_id = $1
-        ORDER BY r.id
-    `
+	// rolesQuery := `
+	//        SELECT r.id, r.name, r.description
+	//        FROM roles r
+	//        INNER JOIN account_roles ar ON r.id = ar.role_id
+	//        WHERE ar.user_id = $1
+	//        ORDER BY r.id
+	//    `
 
-	var roles []models.Role
-	err = r.db.SelectContext(ctx, &roles, rolesQuery, account.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get roles for account: %w", err)
-	}
+	// var roles []models.Role
+	// err = r.db.SelectContext(ctx, &roles, rolesQuery, account.UserID)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get roles for account: %w", err)
+	// }
 
 	// Assign the fetched roles to the account
-	account.Roles = roles
+	// account.Roles = roles
 
 	return &account, nil
 }
@@ -138,7 +152,27 @@ func (r *AccountRepository) GetByID(ctx context.Context, userID uuid.UUID) (*mod
 		return nil, fmt.Errorf("failed to get roles for account: %w", err)
 	}
 
-	account.Roles = roles
-
 	return &account, nil
+}
+
+func (r *AccountRepository) ChangeAccountPassword(ctx context.Context, userID uuid.UUID, hash string) error {
+	query := `UPDATE accounts SET password_hash = $1 WHERE user_id = $2`
+
+	_, err := r.db.ExecContext(ctx, query, hash, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *AccountRepository) ChangeAccountStatus(ctx context.Context, userID uuid.UUID, disabled bool) error {
+	query := `UPDATE accounts SET disabled = $1 WHERE user_id = $2`
+
+	_, err := r.db.ExecContext(ctx, query, disabled, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

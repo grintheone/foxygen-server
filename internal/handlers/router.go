@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -12,7 +11,6 @@ import (
 
 func NewRouter(accountService *services.AccountService, authService *services.AuthService) http.Handler {
 	r := chi.NewRouter()
-
 	// Initialize handlers
 	accountHandler := &AccountHandler{accountService: accountService}
 	authHandler := &AuthHandler{authService: authService}
@@ -22,39 +20,32 @@ func NewRouter(accountService *services.AccountService, authService *services.Au
 	r.Use(middleware.Recoverer) // Recovers from panics
 	r.Use(middleware.RequestID) // Adds a request ID to each request
 
-	r.Group(func(r chi.Router) {
-		r.Post("/login", authHandler.Login)
-		r.Post("/refresh", authHandler.Refresh)
-		r.Post("/register", accountHandler.CreateAccount) // Or make this admin-only
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/login", authHandler.Login) // Main handler for further operations with the app
+		r.Post("/refreshToken", authHandler.Refresh)
 	})
 
-	// Protected routes (authentication required)
-	r.Group(func(r chi.Router) {
-		// Apply auth middleware to this group
+	// Router that requires authentication
+	r.Route("/app", func(r chi.Router) {
 		r.Use(middlewares.AuthMiddleware(authService))
 
-		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Print(r.Context())
-			w.Write([]byte("cool"))
-		})
+		// Main app handlers
+	})
 
-		// r.Get("/profile", accountHandler.GetProfile)
-		// r.Put("/profile", accountHandler.UpdateProfile)
+	// Protected router for account specific operations
+	r.Route("/account", func(r chi.Router) {
+		r.Use(middlewares.AuthMiddleware(authService))
 
-		// Admin-only routes (authentication + role check)
-		r.Group(func(r chi.Router) {
-			// Apply role-based middleware on top of auth
-			r.Use(middlewares.RequireRole("admin"))
+		r.Patch("/change-password", accountHandler.ChangePassword)
+	})
 
-			// r.Get("/users", func(w http.ResponseWriter, r *http.Request) {
-			// 	fmt.Print(r.Context())
-			// 	w.Write([]byte("admin"))
-			// })
+	// Router that requires authentication and admin role
+	r.Route("/admin", func(r chi.Router) {
+		r.Use(middlewares.AuthMiddleware(authService))
+		r.Use(middlewares.RequireRole("admin"))
 
-			// r.Get("/admin/users", accountHandler.ListAllUsers)
-			// r.Post("/admin/users", accountHandler.CreateUser) // Admin creates users
-			// r.Put("/admin/users/{userID}", accountHandler.UpdateUser)
-		})
+		r.Post("/create-account", accountHandler.CreateAccount)
+		r.Patch("/change-account-status", accountHandler.ChangeAccountStatus)
 	})
 
 	return r

@@ -18,7 +18,7 @@ const (
 	// UsernameKey is the key for storing username in the request context.
 	UsernameKey contextKey = "username"
 	// UserRolesKey is the key for storing user roles in the request context.
-	UserRolesKey contextKey = "user_roles"
+	UserRoleKey contextKey = "user_role"
 )
 
 // AuthMiddleware creates a middleware that validates JWT tokens.
@@ -41,7 +41,7 @@ func AuthMiddleware(authService *services.AuthService) func(http.Handler) http.H
 
 			token, err := authService.ValidateAccessToken(tokenString)
 			if err != nil {
-				http.Error(w, "Invalid token: "+err.Error(), http.StatusUnauthorized)
+				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
 			}
 
@@ -54,8 +54,8 @@ func AuthMiddleware(authService *services.AuthService) func(http.Handler) http.H
 				if username, exists := claims["username"]; exists {
 					ctx = context.WithValue(ctx, UsernameKey, username)
 				}
-				if roles, exists := claims["roles"]; exists {
-					ctx = context.WithValue(ctx, UserRolesKey, roles)
+				if role, exists := claims["role"]; exists {
+					ctx = context.WithValue(ctx, UserRoleKey, role)
 				}
 				r = r.WithContext(ctx)
 			} else {
@@ -72,21 +72,13 @@ func AuthMiddleware(authService *services.AuthService) func(http.Handler) http.H
 func RequireRole(requiredRole string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			roles, ok := GetUserRolesFromContext(r.Context())
+			role, ok := GetUserRoleFromContext(r.Context())
 			if !ok {
 				http.Error(w, "Access denied: no role information", http.StatusForbidden)
 				return
 			}
 
-			hasRole := false
-			for _, role := range roles {
-				if r, ok := role.(string); ok && r == requiredRole {
-					hasRole = true
-					break
-				}
-			}
-
-			if !hasRole {
+			if role != requiredRole {
 				http.Error(w, "Access denied: insufficient permissions", http.StatusForbidden)
 				return
 			}
@@ -107,7 +99,7 @@ func GetUsernameFromContext(ctx context.Context) (string, bool) {
 	return username, ok
 }
 
-func GetUserRolesFromContext(ctx context.Context) ([]interface{}, bool) {
-	roles, ok := ctx.Value(UserRolesKey).([]interface{})
+func GetUserRoleFromContext(ctx context.Context) (string, bool) {
+	roles, ok := ctx.Value(UserRoleKey).(string)
 	return roles, ok
 }
