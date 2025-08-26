@@ -10,15 +10,23 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type AccountRepository struct {
+type AccountRepository interface {
+	CreateAccountWithRoles(ctx context.Context, account *models.Account, roleID int) (*models.Account, error)
+	GetByUsername(ctx context.Context, username string) (*models.Account, error)
+	GetByID(ctx context.Context, userID uuid.UUID) (*models.Account, error)
+	ChangeAccountPassword(ctx context.Context, userID uuid.UUID, hash string) error
+	ChangeAccountStatus(ctx context.Context, userID uuid.UUID, disabled bool) error
+}
+
+type accountRepository struct {
 	db *sqlx.DB
 }
 
-func NewAccountRepository(db *sqlx.DB) *AccountRepository {
-	return &AccountRepository{db}
+func NewAccountRepository(db *sqlx.DB) AccountRepository {
+	return &accountRepository{db}
 }
 
-func (r *AccountRepository) CreateAccountWithRoles(ctx context.Context, account *models.Account, roleID int) (*models.Account, error) {
+func (r *accountRepository) CreateAccountWithRoles(ctx context.Context, account *models.Account, roleID int) (*models.Account, error) {
 	// Begin a transaction
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -63,7 +71,7 @@ func (r *AccountRepository) CreateAccountWithRoles(ctx context.Context, account 
 	return account, nil
 }
 
-func (r *AccountRepository) GetByUsername(ctx context.Context, username string) (*models.Account, error) {
+func (r *accountRepository) GetByUsername(ctx context.Context, username string) (*models.Account, error) {
 	query := `
 	   	SELECT
 	        a.user_id,
@@ -93,7 +101,7 @@ func (r *AccountRepository) GetByUsername(ctx context.Context, username string) 
 	return &account, nil
 }
 
-func (r *AccountRepository) GetByID(ctx context.Context, userID uuid.UUID) (*models.Account, error) {
+func (r *accountRepository) GetByID(ctx context.Context, userID uuid.UUID) (*models.Account, error) {
 	query := `
 	   	SELECT
 	        a.user_id,
@@ -121,7 +129,7 @@ func (r *AccountRepository) GetByID(ctx context.Context, userID uuid.UUID) (*mod
 	return &account, nil
 }
 
-func (r *AccountRepository) ChangeAccountPassword(ctx context.Context, userID uuid.UUID, hash string) error {
+func (r *accountRepository) ChangeAccountPassword(ctx context.Context, userID uuid.UUID, hash string) error {
 	query := `UPDATE accounts SET password_hash = $1 WHERE user_id = $2`
 
 	_, err := r.db.ExecContext(ctx, query, hash, userID)
@@ -132,7 +140,7 @@ func (r *AccountRepository) ChangeAccountPassword(ctx context.Context, userID uu
 	return nil
 }
 
-func (r *AccountRepository) ChangeAccountStatus(ctx context.Context, userID uuid.UUID, disabled bool) error {
+func (r *accountRepository) ChangeAccountStatus(ctx context.Context, userID uuid.UUID, disabled bool) error {
 	query := `UPDATE accounts SET disabled = $1 WHERE user_id = $2`
 
 	_, err := r.db.ExecContext(ctx, query, disabled, userID)

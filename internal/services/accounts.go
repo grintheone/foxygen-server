@@ -12,10 +12,10 @@ import (
 )
 
 type AccountService struct {
-	accountRepo *repository.AccountRepository
+	accountRepo repository.AccountRepository
 }
 
-func NewAccountService(ar *repository.AccountRepository) *AccountService {
+func NewAccountService(ar repository.AccountRepository) *AccountService {
 	return &AccountService{accountRepo: ar}
 }
 
@@ -42,7 +42,6 @@ func (s *AccountService) CreateUser(ctx context.Context, username, password, dat
 		Username:     username,
 		Database:     database,
 		PasswordHash: string(hashedPassword),
-		Disabled:     false,
 	}
 
 	createdAccount, err := s.accountRepo.CreateAccountWithRoles(ctx, newAccount, roleID)
