@@ -34,7 +34,10 @@ func NewApp(cfg *config.Config) (*App, error) {
 	accountService := services.NewAccountService(accountRepo)
 	authService := services.NewAuthService(accountService, cfg.Server.Secret)
 
-	r := handlers.NewRouter(accountService, authService)
+	userRepo := repository.NewUsersRepository(db)
+	userService := services.NewUserService(userRepo)
+
+	r := handlers.NewRouter(accountService, authService, userService)
 
 	return &App{Router: r, DB: db}, nil
 }

@@ -63,6 +63,14 @@ func (r *accountRepository) CreateAccountWithRoles(ctx context.Context, account 
 		return nil, fmt.Errorf("could not assign roles to account: %w", err)
 	}
 
+	// Insert the base user when creating new account
+	newUserQuery := `INSERT INTO users (user_id, first_name, last_name, department, email, phone, user_pic) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
+	_, err = tx.ExecContext(ctx, newUserQuery, newUserID, nil, nil, nil, nil, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create an app account for new user: %w", err)
+	}
+
 	// If everything went well, commit the transaction
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("could not commit transaction: %w", err)
