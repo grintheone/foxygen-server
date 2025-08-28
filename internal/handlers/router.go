@@ -28,46 +28,45 @@ func NewRouter(
 	r.Use(middleware.Logger)    // Logs incoming requests
 	r.Use(middleware.Recoverer) // Recovers from panics
 	r.Use(middleware.RequestID) // Adds a request ID to each request
+	// r.Use(middleware.DefaultLogger)
 
-	r.Route("/v1", func(r chi.Router) {
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/login", authHandler.Login) // Main handler for further operations with the app
-			r.Post("/refreshToken", authHandler.Refresh)
-		})
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/login", authHandler.Login) // Main handler for further operations with the app
+		r.Post("/refreshToken", authHandler.Refresh)
+	})
 
-		r.Route("/users", func(r chi.Router) {
-			r.Use(middlewares.AuthMiddleware(authService))
+	r.Route("/api", func(r chi.Router) {
+		r.Use(middlewares.AuthMiddleware(authService))
 
-			r.Get("/", userHandler.ListUsers)
-			r.Get("/{userID}", userHandler.GetByID)
-			r.Delete("/{userID}", userHandler.DeleteUser)
-			r.Patch("/{userID}", userHandler.UpdateUser)
+		r.Route("/v1", func(r chi.Router) {
+			r.Route("/users", func(r chi.Router) {
+				r.Get("/", userHandler.ListUsers)
+				r.Get("/{userID}", userHandler.GetByID)
+				r.Delete("/{userID}", userHandler.DeleteUser)
+				r.Patch("/{userID}", userHandler.UpdateUser)
+			})
 		})
 
 		r.Route("/clients", func(r chi.Router) {
-			r.Use(middlewares.AuthMiddleware(authService))
-
 			r.Get("/", clientHandler.ListClients)
 		})
 
 		r.Route("/comments", func(r chi.Router) {
-			r.Use(middlewares.AuthMiddleware(authService))
-
 			r.Get("/", commentHandler.GetCommentByIds)
 			r.Post("/", commentHandler.NewComment)
 			r.Patch("/", commentHandler.UpdateComment)
 			r.Delete("/{id}", commentHandler.DeleteComment)
 		})
 
-		r.Route("/accounts", func(r chi.Router) {
-			r.Use(middlewares.AuthMiddleware(authService))
-
-			r.Patch("/password", accountHandler.ChangePassword)
+		r.Route("/contacts", func(r chi.Router) {
 		})
 
+		r.Route("/accounts", func(r chi.Router) {
+			r.Patch("/password", accountHandler.ChangePassword)
+		})
+		
 		// Router that requires authentication and admin role
 		r.Route("/admin", func(r chi.Router) {
-			r.Use(middlewares.AuthMiddleware(authService))
 			r.Use(middlewares.RequireRole("admin"))
 
 			r.Route("/accounts", func(r chi.Router) {
@@ -75,7 +74,8 @@ func NewRouter(
 				r.Patch("/status", accountHandler.ChangeAccountStatus)
 			})
 		})
-	})
 
+	})
+	
 	return r
 }

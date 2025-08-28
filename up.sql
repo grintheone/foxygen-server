@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS clients (
     location JSONB DEFAULT '{"lat": 0, "lng": 0}',
     comments INT[] DEFAULT '{}',
     laboratory_system UUID,
-    manager UUID REFERENCES accounts(user_id) ON DELETE SET NULL
+    manager UUID[] DEFAULT '{}'
 );
 
 INSERT INTO clients (
@@ -212,7 +212,7 @@ VALUES (
     'Moscow, Red Square, 1',
     '{"lat": 55.7539, "lng": 37.6208}', -- JSONB location with coordinates
     'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', -- TODO: ADD Laboraroty reference
-     'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e'
+    '{ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e}'
 );
 
 -- Insert a comment for a client
@@ -220,5 +220,19 @@ INSERT INTO comments (author_id, reference_id, text, created_at)
 VALUES (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Client comment', NOW());
 INSERT INTO comments (author_id, reference_id, text, created_at)
 VALUES (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'New comment', NOW());
+
+
+-- Contacts
+CREATE TABLE IF NOT EXISTS contacts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    position TEXT,
+    phone TEXT UNIQUE,
+    email TEXT UNIQUE,
+    client_id UUID REFERENCES clients(id) ON DELETE CASCADE
+);
+
+INSERT INTO contacts (name, phone, email, client_id)
+VALUES ('Alexander', '79992161714', 'grin3run@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 
 COMMIT;
