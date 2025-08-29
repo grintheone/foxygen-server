@@ -12,11 +12,11 @@ import (
 )
 
 type AccountService struct {
-	accountRepo repository.AccountRepository
+	repo repository.AccountRepository
 }
 
-func NewAccountService(ar repository.AccountRepository) *AccountService {
-	return &AccountService{accountRepo: ar}
+func NewAccountService(r repository.AccountRepository) *AccountService {
+	return &AccountService{repo: r}
 }
 
 func (s *AccountService) CreateUser(ctx context.Context, username, password, database string, role string) (*models.Account, error) {
@@ -44,7 +44,7 @@ func (s *AccountService) CreateUser(ctx context.Context, username, password, dat
 		PasswordHash: string(hashedPassword),
 	}
 
-	createdAccount, err := s.accountRepo.CreateAccountWithRoles(ctx, newAccount, roleID)
+	createdAccount, err := s.repo.CreateAccountWithRoles(ctx, newAccount, roleID)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (s *AccountService) GetAccountByUsername(ctx context.Context, username stri
 		return nil, fmt.Errorf("username cannot be empty")
 	}
 
-	account, err := s.accountRepo.GetByUsername(ctx, username)
+	account, err := s.repo.GetByUsername(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("service error fetching user: %w", err)
 	}
@@ -76,7 +76,7 @@ func (s *AccountService) GetAccountByUsername(ctx context.Context, username stri
 }
 
 func (s *AccountService) GetUserByID(ctx context.Context, userID uuid.UUID) (*models.Account, error) {
-	account, err := s.accountRepo.GetByID(ctx, userID)
+	account, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("service error fetching user by ID: %w", err)
 	}
@@ -92,7 +92,7 @@ func (s *AccountService) GetUserByID(ctx context.Context, userID uuid.UUID) (*mo
 }
 
 func (s *AccountService) ChangeAccountPassword(ctx context.Context, userID uuid.UUID, new, old string) error {
-	account, err := s.accountRepo.GetByID(ctx, userID)
+	account, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("service error fetching user by ID: %w", err)
 	}
@@ -104,7 +104,7 @@ func (s *AccountService) ChangeAccountPassword(ctx context.Context, userID uuid.
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(new), bcrypt.DefaultCost)
 
-	err = s.accountRepo.ChangeAccountPassword(ctx, userID, string(hashedPassword))
+	err = s.repo.ChangeAccountPassword(ctx, userID, string(hashedPassword))
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (s *AccountService) ChangeAccountPassword(ctx context.Context, userID uuid.
 }
 
 func (s *AccountService) ChangeAccountStatus(ctx context.Context, userID uuid.UUID, disabled bool) error {
-	err := s.accountRepo.ChangeAccountStatus(ctx, userID, disabled)
+	err := s.repo.ChangeAccountStatus(ctx, userID, disabled)
 	if err != nil {
 		return err
 	}

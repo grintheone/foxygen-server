@@ -49,6 +49,9 @@ func NewRouter(
 
 			r.Route("/clients", func(r chi.Router) {
 				r.Get("/", clientHandler.ListClients)
+				r.Post("/", clientHandler.CreateClient)
+				r.Patch("/{uuid}", clientHandler.UpdateClient)
+				r.Delete("/{uuid}", clientHandler.DeleteClient)
 			})
 
 			r.Route("/comments", func(r chi.Router) {

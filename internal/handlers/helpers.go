@@ -28,6 +28,7 @@ func notFound(w http.ResponseWriter) {
 
 func decodeJSONBody[T any](w http.ResponseWriter, r *http.Request, dst *T) bool {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		log.Print(err)
 		clientError(w, http.StatusBadRequest)
 		return false
 	}
