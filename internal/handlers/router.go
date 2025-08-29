@@ -54,7 +54,7 @@ func NewRouter(
 			r.Route("/comments", func(r chi.Router) {
 				r.Get("/", commentHandler.GetCommentByIds)
 				r.Post("/", commentHandler.NewComment)
-				r.Patch("/", commentHandler.UpdateComment)
+				r.Patch("/{id}", commentHandler.UpdateComment)
 				r.Delete("/{id}", commentHandler.DeleteComment)
 			})
 

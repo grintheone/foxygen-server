@@ -11,9 +11,9 @@ import (
 
 type CommentsRepository interface {
 	GetCommentByIds(ctx context.Context, ids []int) (*[]models.Comment, error)
-	NewComment(ctx context.Context, data models.Comment) (*models.Comment, error)
+	NewComment(ctx context.Context, payload models.Comment) (*models.Comment, error)
 	DeleteComment(ctx context.Context, id int) error
-	UpdateComment(ctx context.Context, updates models.CommentUpdate) error
+	UpdateComment(ctx context.Context, id int, payload models.CommentUpdate) error
 }
 
 type commentsRepository struct {
@@ -40,7 +40,7 @@ func (r *commentsRepository) GetCommentByIds(ctx context.Context, ids []int) (*[
 	return &comments, nil
 }
 
-func (r *commentsRepository) NewComment(ctx context.Context, data models.Comment) (*models.Comment, error) {
+func (r *commentsRepository) NewComment(ctx context.Context, payload models.Comment) (*models.Comment, error) {
 	query := `
         INSERT INTO comments (author_id, reference_id, text, created_at)
         VALUES ($1, $2, $3, $4)
@@ -49,7 +49,7 @@ func (r *commentsRepository) NewComment(ctx context.Context, data models.Comment
 
 	var comment models.Comment
 
-	err := r.db.Get(&comment, query, data.AuthorID, data.ReferenceID, data.Text, time.Now())
+	err := r.db.GetContext(ctx, &comment, query, payload.AuthorID, payload.ReferenceID, payload.Text, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -68,10 +68,10 @@ func (r *commentsRepository) DeleteComment(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *commentsRepository) UpdateComment(ctx context.Context, updates models.CommentUpdate) error {
+func (r *commentsRepository) UpdateComment(ctx context.Context, id int, payload models.CommentUpdate) error {
 	query := `UPDATE comments SET text = $1 WHERE id = $2`
 
-	_, err := r.db.ExecContext(ctx, query, updates.Text, updates.ID)
+	_, err := r.db.ExecContext(ctx, query, payload.Text, id)
 	if err != nil {
 		return err
 	}

@@ -68,17 +68,24 @@ func (h *CommentHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CommentHandler) UpdateComment(w http.ResponseWriter, r *http.Request) {
-	var updates models.CommentUpdate
+	ID := chi.URLParam(r, "id")
 
-	if !decodeJSONBody(w, r, &updates) {
+	if ID == "" {
+		clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	err := h.commentService.UpdateComment(r.Context(), updates)
+	var payload models.CommentUpdate
+
+	if !decodeJSONBody(w, r, &payload) {
+		return
+	}
+
+	err := h.commentService.UpdateComment(r.Context(), ID, payload)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, updates)
+	writeJSON(w, http.StatusOK, payload)
 }

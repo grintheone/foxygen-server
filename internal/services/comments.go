@@ -63,8 +63,13 @@ func (s *CommentService) DeleteComment(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *CommentService) UpdateComment(ctx context.Context, updates models.CommentUpdate) error {
-	err := s.commentRepo.UpdateComment(ctx, updates)
+func (s *CommentService) UpdateComment(ctx context.Context, id string, payload models.CommentUpdate) error {
+	numberId, err := strconv.Atoi(id)
+	if err != nil {
+		return fmt.Errorf("can't convert id to number: %w", err)
+	}
+
+	err = s.commentRepo.UpdateComment(ctx, numberId, payload)
 	if err != nil {
 		return fmt.Errorf("service error updating the comment: %w", err)
 	}
