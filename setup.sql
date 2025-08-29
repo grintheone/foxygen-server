@@ -1,29 +1,39 @@
+DROP TABLE IF EXISTS accounts CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+DROP TABLE IF EXISTS account_roles CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS regions CASCADE;
+DROP TABLE IF EXISTS clients CASCADE;
+DROP TABLE IF EXISTS comments CASCADE;
+DROP TABLE IF EXISTS contacts CASCADE;
+
+
 -- Appends comment ID to corresponding tables
-CREATE OR REPLACE FUNCTION append_comment_to_reference()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Handle INSERT operations
-    IF TG_OP = 'INSERT' THEN
-        -- Check if reference_id exists in clients table
-        IF EXISTS (SELECT 1 FROM clients WHERE id = NEW.reference_id) THEN
-            UPDATE clients
-            SET comments = array_append(COALESCE(comments, '{}'), NEW.id)
-            WHERE id = NEW.reference_id;
-        END IF;
+-- CREATE OR REPLACE FUNCTION append_comment_to_reference()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--     -- Handle INSERT operations
+--     IF TG_OP = 'INSERT' THEN
+--         -- Check if reference_id exists in clients table
+--         IF EXISTS (SELECT 1 FROM clients WHERE id = NEW.reference_id) THEN
+--             UPDATE clients
+--             SET comments = array_append(COALESCE(comments, '{}'), NEW.id)
+--             WHERE id = NEW.reference_id;
+--         END IF;
 
-    -- Handle DELETE operations
-    ELSIF TG_OP = 'DELETE' THEN
-        -- Check if reference_id exists in clients table
-        IF EXISTS (SELECT 1 FROM clients WHERE id = OLD.reference_id) THEN
-            UPDATE clients
-            SET comments = array_remove(COALESCE(comments, '{}'), OLD.id)
-            WHERE id = OLD.reference_id;
-        END IF;
-    END IF;
+--     -- Handle DELETE operations
+--     ELSIF TG_OP = 'DELETE' THEN
+--         -- Check if reference_id exists in clients table
+--         IF EXISTS (SELECT 1 FROM clients WHERE id = OLD.reference_id) THEN
+--             UPDATE clients
+--             SET comments = array_remove(COALESCE(comments, '{}'), OLD.id)
+--             WHERE id = OLD.reference_id;
+--         END IF;
+--     END IF;
 
-    RETURN COALESCE(NEW, OLD);
-END;
-$$ LANGUAGE plpgsql;
+--     RETURN COALESCE(NEW, OLD);
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 BEGIN;
 
@@ -179,10 +189,10 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 -- Create the trigger
-CREATE OR REPLACE TRIGGER trigger_append_comment
-AFTER INSERT OR DELETE ON comments
-FOR EACH ROW
-EXECUTE FUNCTION append_comment_to_reference();
+-- CREATE OR REPLACE TRIGGER trigger_append_comment
+-- AFTER INSERT OR DELETE ON comments
+-- FOR EACH ROW
+-- EXECUTE FUNCTION append_comment_to_reference();
 
 -- Clients
 CREATE TABLE IF NOT EXISTS clients (
@@ -191,7 +201,6 @@ CREATE TABLE IF NOT EXISTS clients (
     region INT REFERENCES regions(id) ON DELETE SET NULL,
     address TEXT,
     location JSONB DEFAULT '{"lat": 0, "lng": 0}',
-    comments INT[] DEFAULT '{}',
     laboratory_system UUID,
     manager UUID[] DEFAULT '{}'
 );

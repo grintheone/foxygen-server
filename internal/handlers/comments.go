@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
 	"github.com/grintheone/foxygen-server/internal/services"
 )
@@ -12,14 +13,21 @@ type CommentHandler struct {
 	commentService *services.CommentService
 }
 
-func (h *CommentHandler) GetCommentByIds(w http.ResponseWriter, r *http.Request) {
-	ids := r.URL.Query().Get("ids")
-	if ids == "" {
+func (h *CommentHandler) GetCommentsByReferenceID(w http.ResponseWriter, r *http.Request) {
+	uuidStr := chi.URLParam(r, "uuid")
+
+	if uuidStr == "" {
 		clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	comments, err := h.commentService.GetCommentByIds(r.Context(), ids)
+	uuid, err := uuid.Parse(uuidStr)
+	if err != nil {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	comments, err := h.commentService.GetCommentsByReferenceID(r.Context(), uuid)
 	if err != nil {
 		serverError(w, err)
 		return

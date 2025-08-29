@@ -55,7 +55,7 @@ func NewRouter(
 			})
 
 			r.Route("/comments", func(r chi.Router) {
-				r.Get("/", commentHandler.GetCommentByIds)
+				r.Get("/{uuid}", commentHandler.GetCommentsByReferenceID)
 				r.Post("/", commentHandler.NewComment)
 				r.Patch("/{id}", commentHandler.UpdateComment)
 				r.Delete("/{id}", commentHandler.DeleteComment)

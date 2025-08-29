@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 )
 
 type CommentsRepository interface {
-	GetCommentByIds(ctx context.Context, ids []int) (*[]models.Comment, error)
+	GetCommentsByReferenceID(ctx context.Context, uuid uuid.UUID) (*[]models.Comment, error)
 	NewComment(ctx context.Context, payload models.Comment) (*models.Comment, error)
 	DeleteComment(ctx context.Context, id int) error
 	UpdateComment(ctx context.Context, id int, payload models.CommentUpdate) error
@@ -24,15 +24,15 @@ func NewCommentRepository(db *sqlx.DB) CommentsRepository {
 	return &commentsRepository{db}
 }
 
-func (r *commentsRepository) GetCommentByIds(ctx context.Context, ids []int) (*[]models.Comment, error) {
+func (r *commentsRepository) GetCommentsByReferenceID(ctx context.Context, uuid uuid.UUID) (*[]models.Comment, error) {
 	query := `
-        SELECT id, author_id, reference_id, text, created_at
+        SELECT *
         FROM comments
-        WHERE id = ANY($1)
+        WHERE reference_id = $1
         ORDER BY created_at DESC
     `
 	var comments []models.Comment
-	err := r.db.SelectContext(ctx, &comments, query, pq.Array(ids))
+	err := r.db.SelectContext(ctx, &comments, query, uuid)
 	if err != nil {
 		return nil, err
 	}
