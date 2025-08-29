@@ -46,12 +46,17 @@ func NewApp(cfg *config.Config) (*App, error) {
 	commentRepo := repository.NewCommentRepository(db)
 	commentService := services.NewCommentService(commentRepo)
 
+	// Contact
+	contactRepo := repository.NewContactRepository(db)
+	contactService := services.NewContactService(contactRepo)
+
 	r := handlers.NewRouter(
 		accountService,
 		authService,
 		userService,
 		clientService,
 		commentService,
+		contactService,
 	)
 
 	return &App{Router: r, DB: db}, nil

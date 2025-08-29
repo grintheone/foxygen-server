@@ -22,6 +22,10 @@ func clientError(w http.ResponseWriter, status int) {
 	http.Error(w, http.StatusText(status), status)
 }
 
+func notFound(w http.ResponseWriter) {
+	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+}
+
 func decodeJSONBody[T any](w http.ResponseWriter, r *http.Request, dst *T) bool {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
 		clientError(w, http.StatusBadRequest)

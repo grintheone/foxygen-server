@@ -234,5 +234,7 @@ CREATE TABLE IF NOT EXISTS contacts (
 
 INSERT INTO contacts (name, phone, email, client_id)
 VALUES ('Alexander', '79992161714', 'grin3run@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+INSERT INTO contacts (name, phone, email, client_id)
+VALUES ('Igor', '79992161721', 'grintheone@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 
 COMMIT;
