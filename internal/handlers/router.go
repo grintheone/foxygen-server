@@ -16,6 +16,7 @@ func NewRouter(
 	clientService *services.ClientService,
 	commentService *services.CommentService,
 	contactService *services.ContactService,
+	deviceService *services.DeviceService,
 ) http.Handler {
 	r := chi.NewRouter()
 	// Initialize handlers
@@ -25,6 +26,7 @@ func NewRouter(
 	clientHandler := &ClientHandler{clientService}
 	commentHandler := &CommentHandler{commentService}
 	contactHandler := &ContactHandler{contactService}
+	deviceHandler := &DeviceHandler{deviceService}
 
 	// Global middleware (applied to all routes)
 	r.Use(middleware.Logger)    // Logs incoming requests
@@ -59,6 +61,14 @@ func NewRouter(
 				r.Post("/", commentHandler.NewComment)
 				r.Patch("/{id}", commentHandler.UpdateComment)
 				r.Delete("/{id}", commentHandler.DeleteComment)
+			})
+
+			r.Route("/devices", func(r chi.Router) {
+				r.Get("/", deviceHandler.GetAllDevices)
+				r.Post("/", deviceHandler.CreateNewDevice)
+				r.Get("/{uuid}", deviceHandler.GetDeviceByID)
+				r.Delete("/{uuid}", deviceHandler.RemoveDeviceByID)
+				r.Patch("/{uuid}", deviceHandler.UpdateDeviceByID)
 			})
 
 			r.Route("/contacts", func(r chi.Router) {

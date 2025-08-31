@@ -6,6 +6,9 @@ DROP TABLE IF EXISTS regions CASCADE;
 DROP TABLE IF EXISTS clients CASCADE;
 DROP TABLE IF EXISTS comments CASCADE;
 DROP TABLE IF EXISTS contacts CASCADE;
+DROP TABLE IF EXISTS research_type CASCADE;
+DROP TABLE IF EXISTS manufacturers CASCADE;
+DROP TABLE IF EXISTS devices CASCADE;
 
 
 -- Appends comment ID to corresponding tables
@@ -245,5 +248,66 @@ INSERT INTO contacts (name, phone, email, client_id)
 VALUES ('Alexander', '79992161714', 'grin3run@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 INSERT INTO contacts (name, phone, email, client_id)
 VALUES ('Igor', '79992161721', 'grintheone@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+
+-- Research Type
+CREATE TABLE IF NOT EXISTS research_type (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT UNIQUE
+);
+
+INSERT INTO research_type (title) VALUES
+('Электрофорез белков'),
+('Автоматизация'),
+('Скрытая кровь'),
+('Пластик'),
+('Аллергология'),
+('Бактериология'),
+('Биохимия'),
+('Газы крови'),
+('Гематология'),
+('Группы крови'),
+('Иммунохимия'),
+('ИФА'),
+('Коагуалогия'),
+('Моча'),
+('ПЦР'),
+('СОЭ'),
+('Водоподготовка'),
+('Цитология');
+
+-- Manufacturers
+CREATE TABLE IF NOT EXISTS manufacturers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT UNIQUE
+);
+
+INSERT INTO manufacturers (title) VALUES
+('СОЛТ'),
+('Урит'),
+('АО "Вектор-Бест-Балтика"'),
+('West Medica Produktions');
+
+-- Devices
+CREATE TABLE IF NOT EXISTS devices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    classificator UUID NOT NULL, -- TODO: ADD REFERENCE
+    serial_number TEXT UNIQUE,
+    properties JSONB DEFAULT '{}',
+    connected_to_lis BOOLEAN DEFAULT FALSE,
+    is_used BOOLEAN DEFAULT FALSE
+);
+
+-- Insert a new device
+INSERT INTO devices (classificator, serial_number)
+VALUES (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'SN123456'
+);
+INSERT INTO devices (classificator, serial_number, properties)
+VALUES (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'SN123453',
+    '{"manufacturer": "Company XYZ", "model": "Device Pro", "firmware": "v2.1"}'
+);
 
 COMMIT;

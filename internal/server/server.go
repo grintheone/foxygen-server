@@ -50,6 +50,10 @@ func NewApp(cfg *config.Config) (*App, error) {
 	contactRepo := repository.NewContactRepository(db)
 	contactService := services.NewContactService(contactRepo)
 
+	// Devices
+	deviceRepo := repository.NewDeviceRepository(db)
+	deviceService := services.NewDeviceService(deviceRepo)
+
 	r := handlers.NewRouter(
 		accountService,
 		authService,
@@ -57,6 +61,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		clientService,
 		commentService,
 		contactService,
+		deviceService,
 	)
 
 	return &App{Router: r, DB: db}, nil
