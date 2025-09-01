@@ -17,6 +17,7 @@ func NewRouter(
 	commentService *services.CommentService,
 	contactService *services.ContactService,
 	deviceService *services.DeviceService,
+	classificatorService *services.ClassificatorService,
 ) http.Handler {
 	r := chi.NewRouter()
 	// Initialize handlers
@@ -27,6 +28,7 @@ func NewRouter(
 	commentHandler := &CommentHandler{commentService}
 	contactHandler := &ContactHandler{contactService}
 	deviceHandler := &DeviceHandler{deviceService}
+	classificatorHandler := &ClassificatorHandler{classificatorService}
 
 	// Global middleware (applied to all routes)
 	r.Use(middleware.Logger)    // Logs incoming requests
@@ -69,6 +71,14 @@ func NewRouter(
 				r.Get("/{uuid}", deviceHandler.GetDeviceByID)
 				r.Delete("/{uuid}", deviceHandler.RemoveDeviceByID)
 				r.Patch("/{uuid}", deviceHandler.UpdateDeviceByID)
+			})
+
+			r.Route("/classificators", func(r chi.Router) {
+				r.Get("/{uuid}", classificatorHandler.GetClassificatorByID)
+				r.Get("/devices/{uuid}", classificatorHandler.GetDevicesByClassificatorID)
+				r.Post("/", classificatorHandler.NewClassificator)
+				r.Delete("/{uuid}", classificatorHandler.RemoveClassificatorByID)
+				r.Patch("/{uuid}", classificatorHandler.UpdateClassificatorInfo)
 			})
 
 			r.Route("/contacts", func(r chi.Router) {

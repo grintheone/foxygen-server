@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS contacts CASCADE;
 DROP TABLE IF EXISTS research_type CASCADE;
 DROP TABLE IF EXISTS manufacturers CASCADE;
 DROP TABLE IF EXISTS devices CASCADE;
+DROP TABLE IF EXISTS classificator CASCADE;
 
 
 -- Appends comment ID to corresponding tables
@@ -287,10 +288,25 @@ INSERT INTO manufacturers (title) VALUES
 ('АО "Вектор-Бест-Балтика"'),
 ('West Medica Produktions');
 
+-- Classificator
+CREATE TABLE IF NOT EXISTS classificator (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT,
+    manufacturer UUID REFERENCES manufacturers(id) ON DELETE SET NULL,
+    research_type UUID REFERENCES research_type(id) ON DELETE SET NULL,
+    registration_certificate JSONB DEFAULT '{}',
+    maintenance_regulations JSONB DEFAULT '{}',
+    attachments TEXT[] DEFAULT '{}',
+    images TEXT[] DEFAULT '{}'
+);
+
+INSERT INTO classificator (id, title)
+VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'BIO');
+
 -- Devices
 CREATE TABLE IF NOT EXISTS devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    classificator UUID NOT NULL, -- TODO: ADD REFERENCE
+    classificator UUID REFERENCES classificator(id) ON DELETE SET NULL,
     serial_number TEXT UNIQUE,
     properties JSONB DEFAULT '{}',
     connected_to_lis BOOLEAN DEFAULT FALSE,
