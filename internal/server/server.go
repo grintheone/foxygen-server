@@ -58,6 +58,10 @@ func NewApp(cfg *config.Config) (*App, error) {
 	classificatorRepo := repository.NewClassificatorRepository(db)
 	classificatorService := services.NewClassificatorService(classificatorRepo)
 
+	// Tickets
+	ticketRepo := repository.NewTicketRepository(db)
+	ticketService := services.NewTicketService(ticketRepo)
+
 	r := handlers.NewRouter(
 		accountService,
 		authService,
@@ -67,6 +71,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		contactService,
 		deviceService,
 		classificatorService,
+		ticketService,
 	)
 
 	return &App{Router: r, DB: db}, nil

@@ -10,7 +10,10 @@ DROP TABLE IF EXISTS research_type CASCADE;
 DROP TABLE IF EXISTS manufacturers CASCADE;
 DROP TABLE IF EXISTS devices CASCADE;
 DROP TABLE IF EXISTS classificator CASCADE;
-
+DROP TABLE IF EXISTS ticket_statuses CASCADE;
+DROP TABLE IF EXISTS ticket_types CASCADE;
+DROP TABLE IF EXISTS ticket_reasons CASCADE;
+DROP TABLE IF EXISTS tickets CASCADE;
 
 -- Appends comment ID to corresponding tables
 -- CREATE OR REPLACE FUNCTION append_comment_to_reference()
@@ -245,8 +248,8 @@ CREATE TABLE IF NOT EXISTS contacts (
     client_id UUID REFERENCES clients(id) ON DELETE CASCADE
 );
 
-INSERT INTO contacts (name, phone, email, client_id)
-VALUES ('Alexander', '79992161714', 'grin3run@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+INSERT INTO contacts (id, name, phone, email, client_id)
+VALUES ('27b1c3f2-f196-4885-8d56-9169e9f71e52', 'Alexander', '79992161714', 'grin3run@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 INSERT INTO contacts (name, phone, email, client_id)
 VALUES ('Igor', '79992161721', 'grintheone@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 
@@ -314,8 +317,9 @@ CREATE TABLE IF NOT EXISTS devices (
 );
 
 -- Insert a new device
-INSERT INTO devices (classificator, serial_number)
+INSERT INTO devices (id, classificator, serial_number)
 VALUES (
+    '2ecc4df8-cd7a-412d-9362-09b047a67c30',
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     'SN123456'
 );
@@ -325,5 +329,79 @@ VALUES (
     'SN123453',
     '{"manufacturer": "Company XYZ", "model": "Device Pro", "firmware": "v2.1"}'
 );
+
+-- Ticket statuses
+CREATE TABLE IF NOT EXISTS ticket_statuses (
+    type VARCHAR(128) PRIMARY KEY,
+    title TEXT
+);
+
+INSERT INTO ticket_statuses (type, title) VALUES
+('created', 'создан'),
+('assigned', 'назначен'),
+('inWork', 'в работе'),
+('worksDone', 'работы завершены'),
+('closed', 'закрыт'),
+('cancelled', 'отменен');
+
+-- Ticket types
+CREATE TABLE IF NOT EXISTS ticket_types (
+    type VARCHAR(128) PRIMARY KEY,
+    title TEXT
+);
+
+INSERT INTO ticket_types (type, title) VALUES
+('internal', 'внутренний'),
+('external', 'внешний');
+
+-- Ticket reasons
+CREATE TABLE IF NOT EXISTS ticket_reasons (
+    id VARCHAR(128) PRIMARY KEY,
+    title TEXT,
+    past TEXT,
+    present TEXT,
+    future TEXT
+);
+
+INSERT INTO ticket_reasons (id, title, past, present, future) VALUES
+('commissioning', 'Ввод в эксплуатацию', 'Введен в эксплуатацию', 'Ввод в эксплуатацию', 'Ввести в эксплуатацию'),
+('consultation', 'Консультация', 'Проведена консультация', 'Консультация', 'Провести консультацию'),
+('deinstallation', 'Деинсталляция', 'Деинсталлирован', 'Деинсталляция', 'Деинсталлировать'),
+('diagnostic', 'Диагностика', 'Проведена диагностика', 'Проведение диагностики', 'Провести диагностику'),
+('installation', 'Инсталляция', 'Инсталлирован', 'Инсталляция', 'Инсталлировать'),
+('maintanence', 'Техническое обслуживание', 'Проведено ТО', 'Проведение ТО', 'Провести ТО'),
+('methodInput', 'Ввод методик', 'Введены методики', 'Ввод методик', 'Ввести методики'),
+('other', 'Прочее', 'Прочее', 'Прочее', 'Прочее'),
+('repair', 'Ремонт', 'Проведен ремонт', 'Ремонт', 'Отремонтировать'),
+('service', 'Сервисный центр', 'Сервисный центр', 'Сервисный центр', 'Сервисный центр'),
+('staffTraining', 'Обучение', 'Провести обучение', 'Обучение', 'Проведено обучение');
+
+CREATE TABLE IF NOT EXISTS tickets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    number TEXT,
+    created_at timestamp DEFAULT NOW(),
+    client UUID REFERENCES clients(id) ON DELETE SET NULL,
+    device UUID REFERENCES devices(id) ON DELETE SET NULL,
+    ticket_type VARCHAR(128) REFERENCES ticket_types(type) ON DELETE SET NULL,
+    author UUID REFERENCES accounts(user_id) ON DELETE SET NULL,
+    planned_interval JSONB DEFAULT '{}',
+    assigned_interval JSONB DEFAULT '{}',
+    actual_interval JSONB DEFAULT '{}',
+    department UUID,
+    assigned_by UUID REFERENCES accounts(user_id) ON DELETE SET NULL,
+    assigned_at timestamp DEFAULT NOW(),
+    reason VARCHAR(128) REFERENCES ticket_reasons(id) ON DELETE SET NULL,
+    description TEXT,
+    contact_person UUID REFERENCES contacts(id) ON DELETE SET NULL,
+    executor UUID REFERENCES accounts(user_id) ON DELETE SET NULL,
+    status VARCHAR(128) REFERENCES ticket_statuses(type) ON DELETE SET NULL,
+    result TEXT,
+    used_materials UUID[] DEFAULT '{}',
+    recommendation TEXT,
+    attachments TEXT[]
+);
+
+INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status) VALUES
+('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'repair', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'created');
 
 COMMIT;
