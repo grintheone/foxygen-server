@@ -398,7 +398,8 @@ CREATE TABLE IF NOT EXISTS tickets (
     result TEXT,
     used_materials UUID[] DEFAULT '{}',
     recommendation TEXT,
-    attachments TEXT[]
+    attachments TEXT[],
+    closed_at timestamp
 );
 
 INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status) VALUES
