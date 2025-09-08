@@ -90,3 +90,26 @@ func (h *ClientHandler) DeleteClient(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, uuid)
 }
+
+func (h *ClientHandler) GetClientByID(w http.ResponseWriter, r *http.Request) {
+	uuidStr := chi.URLParam(r, "uuid")
+
+	if uuidStr == "" {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	uuid, err := uuid.Parse(uuidStr)
+	if err != nil {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	client, err := h.clientService.GetClientByID(r.Context(), uuid)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, client)
+}

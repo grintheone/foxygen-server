@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
@@ -13,6 +14,7 @@ type ClientsRepository interface {
 	CreateClient(ctx context.Context, payload models.Client) (*models.Client, error)
 	UpdateClient(ctx context.Context, uuid uuid.UUID, payload models.ClientUpdate) (*models.Client, error)
 	DeleteClient(ctx context.Context, uuid uuid.UUID) error
+	GetClientByID(ctx context.Context, uuid uuid.UUID) (*models.Client, error)
 }
 
 type clientsRepository struct {
@@ -103,4 +105,21 @@ func (r *clientsRepository) DeleteClient(ctx context.Context, uuid uuid.UUID) er
 	}
 
 	return nil
+}
+
+func (r *clientsRepository) GetClientByID(ctx context.Context, uuid uuid.UUID) (*models.Client, error) {
+	query := `SELECT * FROM clients WHERE id = $1`
+
+	var client models.Client
+
+	err := r.db.GetContext(ctx, &client, query, uuid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return &client, nil
 }

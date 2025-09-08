@@ -248,8 +248,8 @@ CREATE TABLE IF NOT EXISTS contacts (
     client_id UUID REFERENCES clients(id) ON DELETE CASCADE
 );
 
-INSERT INTO contacts (id, name, phone, email, client_id)
-VALUES ('27b1c3f2-f196-4885-8d56-9169e9f71e52', 'Alexander', '79992161714', 'grin3run@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+INSERT INTO contacts (id, name, position, phone, email, client_id)
+VALUES ('27b1c3f2-f196-4885-8d56-9169e9f71e52', 'Вероника Васильевна', 'Заведующая лабораторией', '79992191217', 'someemail@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 INSERT INTO contacts (name, phone, email, client_id)
 VALUES ('Igor', '79992161721', 'grintheone@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 

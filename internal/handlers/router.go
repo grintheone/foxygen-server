@@ -55,6 +55,7 @@ func NewRouter(
 
 			r.Route("/clients", func(r chi.Router) {
 				r.Get("/", clientHandler.ListClients)
+				r.Get("/{uuid}", clientHandler.GetClientByID)
 				r.Post("/", clientHandler.CreateClient)
 				r.Patch("/{uuid}", clientHandler.UpdateClient)
 				r.Delete("/{uuid}", clientHandler.DeleteClient)

@@ -51,3 +51,12 @@ func (s *ClientService) DeleteClient(ctx context.Context, uuid uuid.UUID) error 
 
 	return nil
 }
+
+func (s *ClientService) GetClientByID(ctx context.Context, uuid uuid.UUID) (*models.Client, error) {
+	client, err := s.repo.GetClientByID(ctx, uuid)
+	if err != nil {
+		return nil, fmt.Errorf("service error getting client by ID: %w", err)
+	}
+
+	return client, nil
+}
