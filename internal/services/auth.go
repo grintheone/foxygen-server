@@ -14,8 +14,8 @@ import (
 
 // Define token expiration times
 const (
-	// AccessTokenExpiry  = 30 * time.Minute
-	AccessTokenExpiry  = 30 * time.Hour
+	AccessTokenExpiry = 1 * time.Minute
+	// AccessTokenExpiry  = 30 * time.Hour
 	RefreshTokenExpiry = 10 * 24 * time.Hour // 10 days
 )
 

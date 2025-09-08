@@ -402,7 +402,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     closed_at timestamp
 );
 
-INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status) VALUES
-('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'repair', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'created');
+INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description) VALUES
+('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.');
 
 COMMIT;

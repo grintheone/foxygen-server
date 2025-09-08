@@ -7,6 +7,14 @@ import (
 	"github.com/lib/pq"
 )
 
+type TicketReason struct {
+	ID      string `json:"id" db:"id"`
+	Title   string `json:"title" db:"title"`
+	Past    string `json:"past" db:"past"`
+	Present string `json:"present" db:"present"`
+	Future  string `json:"future" db:"future"`
+}
+
 type Ticket struct {
 	ID               uuid.UUID      `json:"id" db:"id"`
 	Number           string         `json:"number" db:"number"`

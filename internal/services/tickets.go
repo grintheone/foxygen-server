@@ -61,3 +61,12 @@ func (s *TicketService) UpdateTicketInfo(ctx context.Context, uuid uuid.UUID, pa
 
 	return updated, nil
 }
+
+func (s *TicketService) GetReasonInfoByID(ctx context.Context, id string) (*models.TicketReason, error) {
+	reasonInfo, err := s.repo.GetReasonInfoByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("service error getting reason info: %w", err)
+	}
+
+	return reasonInfo, nil
+}

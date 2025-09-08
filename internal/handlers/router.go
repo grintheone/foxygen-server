@@ -39,7 +39,7 @@ func NewRouter(
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", authHandler.Login) // Main handler for further operations with the app
-		r.Post("/refreshToken", authHandler.Refresh)
+		r.Post("/refresh", authHandler.Refresh)
 	})
 
 	r.Route("/api", func(r chi.Router) {
@@ -89,6 +89,7 @@ func NewRouter(
 				r.Delete("/{uuid}", ticketHandler.DeleteTicketByID)
 				r.Post("/", ticketHandler.CreateNewTicket)
 				r.Patch("/{uuid}", ticketHandler.UpdateTicketInfo)
+				r.Get("/reason/{id}", ticketHandler.GetReasonInfoByID)
 			})
 
 			r.Route("/contacts", func(r chi.Router) {

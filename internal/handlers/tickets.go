@@ -113,3 +113,19 @@ func (h *TicketHandler) UpdateTicketInfo(w http.ResponseWriter, r *http.Request)
 
 	writeJSON(w, http.StatusOK, updated)
 }
+
+func (h *TicketHandler) GetReasonInfoByID(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	reasonInfo, err := h.ticketService.GetReasonInfoByID(r.Context(), id)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, reasonInfo)
+}
