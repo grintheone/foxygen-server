@@ -129,3 +129,25 @@ func (h *TicketHandler) GetReasonInfoByID(w http.ResponseWriter, r *http.Request
 
 	writeJSON(w, http.StatusOK, reasonInfo)
 }
+
+func (h *TicketHandler) GetTicketContactPerson(w http.ResponseWriter, r *http.Request) {
+	uuidStr := chi.URLParam(r, "uuid")
+	if uuidStr == "" {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	uuid, err := uuid.Parse(uuidStr)
+	if err != nil {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	contact, err := h.ticketService.GetTicketContactPerson(r.Context(), uuid)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, contact)
+}

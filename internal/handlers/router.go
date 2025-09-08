@@ -90,6 +90,7 @@ func NewRouter(
 				r.Post("/", ticketHandler.CreateNewTicket)
 				r.Patch("/{uuid}", ticketHandler.UpdateTicketInfo)
 				r.Get("/reason/{id}", ticketHandler.GetReasonInfoByID)
+				r.Get("/contact/{uuid}", ticketHandler.GetTicketContactPerson)
 			})
 
 			r.Route("/contacts", func(r chi.Router) {

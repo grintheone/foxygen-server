@@ -16,6 +16,7 @@ type TicketsRepository interface {
 	CreateNewTicket(ctx context.Context, payload models.Ticket) (*models.Ticket, error)
 	UpdateTicketInfo(ctx context.Context, uuid uuid.UUID, payload models.TicketUpdates) (*models.Ticket, error)
 	GetReasonInfoByID(ctx context.Context, id string) (*models.TicketReason, error)
+	GetTicketContactPerson(ctx context.Context, uuid uuid.UUID) (*models.Contact, error)
 }
 
 type ticketsRepository struct {
@@ -179,4 +180,20 @@ func (r *ticketsRepository) GetReasonInfoByID(ctx context.Context, id string) (*
 	}
 
 	return &reasonData, nil
+}
+
+func (r *ticketsRepository) GetTicketContactPerson(ctx context.Context, uuid uuid.UUID) (*models.Contact, error) {
+	query := `SELECT * FROM contacts WHERE id = $1`
+
+	var contact models.Contact
+
+	err := r.db.GetContext(ctx, &contact, query, uuid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &contact, nil
 }

@@ -70,3 +70,12 @@ func (s *TicketService) GetReasonInfoByID(ctx context.Context, id string) (*mode
 
 	return reasonInfo, nil
 }
+
+func (s *TicketService) GetTicketContactPerson(ctx context.Context, uuid uuid.UUID) (*models.Contact, error) {
+	contact, err := s.repo.GetTicketContactPerson(ctx, uuid)
+	if err != nil {
+		return nil, fmt.Errorf("service error getting ticket contact: %w", err)
+	}
+
+	return contact, nil
+}
