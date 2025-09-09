@@ -19,12 +19,21 @@ const (
 	RefreshTokenExpiry = 10 * 24 * time.Hour // 10 days
 )
 
-// LoginResponse defines the structure of a successful login response
-type LoginResponse struct {
+type UserData struct {
+	Username string    `json:"username"`
+	UserID   uuid.UUID `json:"userID"`
+	Role     string    `json:"role"`
+}
+
+type AuthData struct {
 	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken"`
-	TokenType    string `json:"tokenType"` // Usually "Bearer"
-	ExpiresIn    int64  `json:"expiresIn"` // Seconds until access token expiry
+}
+
+// LoginResponse defines the structure of a successful login response
+type LoginResponse struct {
+	UserData
+	AuthData
 }
 
 var (
@@ -38,7 +47,7 @@ type AuthService struct {
 }
 
 type Claims struct {
-	UserID uuid.UUID `json:"user_id"`
+	UserID uuid.UUID `json:"userID"`
 	jwt.RegisteredClaims
 }
 
@@ -101,14 +110,19 @@ func (s *AuthService) Authorize(ctx context.Context, username, password string) 
 		return nil, err
 	}
 
-	response := &LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    int64(AccessTokenExpiry.Seconds()),
+	response := LoginResponse{
+		AuthData: AuthData{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		},
+		UserData: UserData{
+			Username: user.Username,
+			UserID:   user.UserID,
+			Role:     user.Role,
+		},
 	}
 
-	return response, nil
+	return &response, nil
 }
 
 // RefreshAccessToken validates a refresh token and issues a new access token
@@ -154,14 +168,19 @@ func (s *AuthService) RefreshAccessToken(ctx context.Context, refreshTokenString
 		return nil, err
 	}
 
-	response := &LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    int64(AccessTokenExpiry.Seconds()),
+	response := LoginResponse{
+		AuthData: AuthData{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		},
+		UserData: UserData{
+			Username: user.Username,
+			UserID:   user.UserID,
+			Role:     user.Role,
+		},
 	}
 
-	return response, nil
+	return &response, nil
 }
 
 // validateTokenAndType validates a token and checks its type claim

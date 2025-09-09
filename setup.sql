@@ -64,7 +64,10 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- test123
 INSERT INTO accounts (user_id, username, database, disabled, password_hash) VALUES
-    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'admin', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm');
+    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'admin', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm'),
+    ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'coordinator', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm'),
+    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'user_1', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm'),
+    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'user_2', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm');
 
 CREATE TABLE IF NOT EXISTS roles (
     id INT PRIMARY KEY,
@@ -84,11 +87,17 @@ CREATE TABLE IF NOT EXISTS account_roles (
 );
 
 INSERT INTO account_roles (user_id, role_id) VALUES
-    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 1);
+    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 1),
+    ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 2),
+    ('73c97b16-09b1-416e-94ad-f8952be14a19', 3),
+    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 3);
 
 
 INSERT INTO users (user_id, first_name, last_name, department, email, phone, user_pic) VALUES
-    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'test_name', 'test_lastname', 'ad2fa382-cad3-2bc1-b4e7-f4a4f12cf54e', 'test@gmail.com', 79992142832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e');
+    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'Админ', 'Главный', 'ad2fa382-cad3-2bc1-b4e7-f4a4f12cf54e', 'test1@gmail.com', 79992141831, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
+    ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'Координат', 'Иванович', 'ad2fa382-cad3-2bc1-b4e7-f4a4f12cf54e', 'test2@gmail.com', 79992141832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
+    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'Эмплои', 'Вадимович', 'ad2fa382-cad3-2bc1-b4e7-f4a4f12cf54e', 'test3@gmail.com', 79992146832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
+    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'Игнат', 'Валерьянович', 'ad2fa382-cad3-2bc1-b4e7-f4a4f12cf54e', 'test4@gmail.com', 79992142732, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e');
 
 -- Regions
 CREATE TABLE IF NOT EXISTS regions (
@@ -304,7 +313,7 @@ CREATE TABLE IF NOT EXISTS classificator (
 );
 
 INSERT INTO classificator (id, title)
-VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'BIO');
+VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Экспресс-анализатор Triage MeterPro');
 
 -- Devices
 CREATE TABLE IF NOT EXISTS devices (
@@ -380,16 +389,16 @@ CREATE TABLE IF NOT EXISTS tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     number TEXT,
     created_at timestamp DEFAULT NOW(),
+    assigned_at timestamp DEFAULT NOW() -- Change to NULL later,
+    workstarted_at timestamp DEFAULT NULL,
+    workfinished_at timestamp DEFAULT NULL,
+    closed_at timestamp DEFAULT NULL,
     client UUID REFERENCES clients(id) ON DELETE SET NULL,
     device UUID REFERENCES devices(id) ON DELETE SET NULL,
     ticket_type VARCHAR(128) REFERENCES ticket_types(type) ON DELETE SET NULL,
     author UUID REFERENCES accounts(user_id) ON DELETE SET NULL,
-    planned_interval JSONB DEFAULT '{}',
-    assigned_interval JSONB DEFAULT '{}',
-    actual_interval JSONB DEFAULT '{}',
     department UUID,
     assigned_by UUID REFERENCES accounts(user_id) ON DELETE SET NULL,
-    assigned_at timestamp DEFAULT NOW(),
     reason VARCHAR(128) REFERENCES ticket_reasons(id) ON DELETE SET NULL,
     description TEXT,
     contact_person UUID REFERENCES contacts(id) ON DELETE SET NULL,
@@ -399,10 +408,9 @@ CREATE TABLE IF NOT EXISTS tickets (
     used_materials UUID[] DEFAULT '{}',
     recommendation TEXT,
     attachments TEXT[],
-    closed_at timestamp
 );
 
 INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description) VALUES
-('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.');
+('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.');
 
 COMMIT;
