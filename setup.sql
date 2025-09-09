@@ -389,7 +389,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     number TEXT,
     created_at timestamp DEFAULT NOW(),
-    assigned_at timestamp DEFAULT NOW() -- Change to NULL later,
+    assigned_at timestamp DEFAULT NOW(), -- Change to NULL later,
     workstarted_at timestamp DEFAULT NULL,
     workfinished_at timestamp DEFAULT NULL,
     closed_at timestamp DEFAULT NULL,
@@ -407,7 +407,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     result TEXT,
     used_materials UUID[] DEFAULT '{}',
     recommendation TEXT,
-    attachments TEXT[],
+    attachments TEXT[]
 );
 
 INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description) VALUES
