@@ -66,6 +66,10 @@ func NewApp(cfg *config.Config) (*App, error) {
 	attachmentsRepo := repository.NewAttachmentRepository(db)
 	attachmentService := services.NewAttachmentService(attachmentsRepo)
 
+	// Departments
+	departmentRepo := repository.NewDepartmentRepo(db)
+	departmentService := services.NewDepartmentService(departmentRepo)
+
 	r := handlers.NewRouter(
 		accountService,
 		authService,
@@ -77,6 +81,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		classificatorService,
 		ticketService,
 		attachmentService,
+		departmentService,
 	)
 
 	return &App{Router: r, DB: db}, nil

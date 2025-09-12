@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS ticket_types CASCADE;
 DROP TABLE IF EXISTS ticket_reasons CASCADE;
 DROP TABLE IF EXISTS tickets CASCADE;
 DROP TABLE IF EXISTS attachments CASCADE;
+DROP TABLE IF EXISTS departments CASCADE;
 
 -- Appends comment ID to corresponding tables
 -- CREATE OR REPLACE FUNCTION append_comment_to_reference()
@@ -62,6 +63,22 @@ CREATE TABLE IF NOT EXISTS users (
     phone TEXT UNIQUE,
     user_pic UUID
 );
+
+CREATE TABLE IF NOT EXISTS departments (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL
+);
+
+INSERT INTO departments (id, title) VALUES
+    ('0d7cf0f9-bbea-11ed-8100-40b0765b1e01', 'Отдел Mindray'),
+    ('1f62a255-ef3a-11e5-8d88-001a64d22812', 'Сервис ВББ'),
+    ('1f62a256-ef3a-11e5-8d88-001a64d22812', 'Отдел биохимии'),
+    ('1f62a257-ef3a-11e5-8d88-001a64d22812', 'Отдел ПЦР'),
+    ('1f62a259-ef3a-11e5-8d88-001a64d22812', 'Сервис А78'),
+    ('91d50980-4c47-11ec-80ec-40b0765b1e01', 'Методисты СОЛТ'),
+    ('9d798b43-9bdd-11ed-80fe-40b0765b1e01', 'Отдел исследования мочи'),
+    ('add49497-f8f5-11e6-a1f7-001a64d22812', 'Сервис ЛИС'),
+    ('c733447e-2567-11ea-80cd-40b0765b1e01', 'Отдел общих клинических исследований');
 
 -- test123
 INSERT INTO accounts (user_id, username, database, disabled, password_hash) VALUES
