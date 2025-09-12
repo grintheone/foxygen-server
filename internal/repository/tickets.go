@@ -145,13 +145,10 @@ func (r *ticketsRepository) UpdateTicketInfo(ctx context.Context, uuid uuid.UUID
 	if payload.Recommendation != nil {
 		existing.Recommendation = payload.Recommendation
 	}
-	if payload.Attachments != nil {
-		existing.Attachments = *payload.Attachments
-	}
 
 	query := `
 		UPDATE tickets
-		SET number = :number, client = :client, device = :device, ticket_type = :ticket_type, author = :author, workstarted_at = :workstarted_at, workfinished_at = :workfinished_at, department = :department, assigned_by = :assigned_by, assigned_at = :assigned_at, reason = :reason, description = :description, contact_person = :contact_person, executor = :executor, status = :status, result = :result, used_materials = :used_materials, recommendation = :recommendation, attachments = :attachments, closed_at = :closed_at
+		SET number = :number, client = :client, device = :device, ticket_type = :ticket_type, author = :author, workstarted_at = :workstarted_at, workfinished_at = :workfinished_at, department = :department, assigned_by = :assigned_by, assigned_at = :assigned_at, reason = :reason, description = :description, contact_person = :contact_person, executor = :executor, status = :status, result = :result, used_materials = :used_materials, recommendation = :recommendation, closed_at = :closed_at
 		WHERE id = :id
 	`
 

@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS ticket_statuses CASCADE;
 DROP TABLE IF EXISTS ticket_types CASCADE;
 DROP TABLE IF EXISTS ticket_reasons CASCADE;
 DROP TABLE IF EXISTS tickets CASCADE;
+DROP TABLE IF EXISTS attachments CASCADE;
 
 -- Appends comment ID to corresponding tables
 -- CREATE OR REPLACE FUNCTION append_comment_to_reference()
@@ -242,9 +243,9 @@ VALUES (
 
 -- Insert a comment for a client
 INSERT INTO comments (author_id, reference_id, text, created_at)
-VALUES (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Client comment', NOW());
+VALUES (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Client comment', (NOW() AT TIME ZONE 'UTC'));
 INSERT INTO comments (author_id, reference_id, text, created_at)
-VALUES (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'New comment', NOW());
+VALUES (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'New comment', (NOW() AT TIME ZONE 'UTC'));
 
 
 -- Contacts
@@ -388,8 +389,8 @@ INSERT INTO ticket_reasons (id, title, past, present, future) VALUES
 CREATE TABLE IF NOT EXISTS tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     number TEXT,
-    created_at timestamp DEFAULT NOW(),
-    assigned_at timestamp DEFAULT NOW(), -- Change to NULL later,
+    created_at timestamp DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    assigned_at timestamp DEFAULT (NOW() AT TIME ZONE 'UTC'), -- Change to NULL later,
     workstarted_at timestamp DEFAULT NULL,
     workfinished_at timestamp DEFAULT NULL,
     closed_at timestamp DEFAULT NULL,
@@ -406,11 +407,20 @@ CREATE TABLE IF NOT EXISTS tickets (
     status VARCHAR(128) REFERENCES ticket_statuses(type) ON DELETE SET NULL,
     result TEXT,
     used_materials UUID[] DEFAULT '{}',
-    recommendation TEXT,
-    attachments TEXT[]
+    recommendation TEXT
 );
 
 INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description) VALUES
 ('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.');
+
+CREATE TABLE IF NOT EXISTS attachments (
+    id SERIAL PRIMARY KEY,
+    file_name TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    file_size BIGINT NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    ref_id UUID NOT NULL
+);
 
 COMMIT;

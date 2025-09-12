@@ -6,6 +6,9 @@ import (
 	"log"
 	"net/http"
 	"runtime/debug"
+	"strconv"
+
+	"github.com/grintheone/foxygen-server/internal/models"
 )
 
 // The serverError helper writes an error message and stack trace to the errorLog,
@@ -43,4 +46,13 @@ func writeJSON[T any](w http.ResponseWriter, status int, data T) {
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		serverError(w, err)
 	}
+}
+
+func writeFile(w http.ResponseWriter, r *http.Request, data models.Attachment) {
+	// Set headers for file download
+	w.Header().Set("Content-Disposition", "attachment; filename="+data.OriginalName)
+	w.Header().Set("Content-Type", data.MimeType)
+	w.Header().Set("Content-Length", strconv.FormatInt(data.FileSize, 10))
+
+	http.ServeFile(w, r, data.FilePath)
 }

@@ -37,7 +37,6 @@ type Ticket struct {
 	Result         *string        `json:"result" db:"result"`
 	UsedMaterials  pq.StringArray `json:"used_materials" db:"used_materials"`
 	Recommendation *string        `json:"recommendation" db:"recommendation"`
-	Attachments    pq.StringArray `json:"attachments" db:"attachments"`
 }
 
 type TicketUpdates struct {
@@ -56,7 +55,6 @@ type TicketUpdates struct {
 	Result         *string         `json:"result" db:"result"`
 	UsedMaterials  *pq.StringArray `json:"used_materials" db:"used_materials"`
 	Recommendation *string         `json:"recommendation" db:"recommendation"`
-	Attachments    *pq.StringArray `json:"attachments" db:"attachments"`
 	AssignedAt     *time.Time      `json:"assigned_at" db:"assigned_at"`
 	WorkStartedAt  *time.Time      `json:"workstarted_at" db:"workstarted_at"`
 	WorkFinishedAt *time.Time      `json:"workfinished_at" db:"workfinished_at"`

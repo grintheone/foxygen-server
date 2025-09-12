@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,6 +21,7 @@ func NewRouter(
 	deviceService *services.DeviceService,
 	classificatorService *services.ClassificatorService,
 	ticketService *services.TicketService,
+	attachmentService *services.AttachmentService,
 ) http.Handler {
 	r := chi.NewRouter()
 	// Initialize handlers
@@ -31,6 +34,14 @@ func NewRouter(
 	deviceHandler := &DeviceHandler{deviceService}
 	classificatorHandler := &ClassificatorHandler{classificatorService}
 	ticketHandler := &TicketHandler{ticketService}
+
+	// Create upload directory
+	uploadDir := "./attachments"
+	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
+		log.Fatal("Failed to create upload directory:", err)
+	}
+
+	attachmentHandler := &AttachmentHandler{attachmentService, uploadDir}
 
 	// Global middleware (applied to all routes)
 	r.Use(middleware.Logger)    // Logs incoming requests
@@ -46,6 +57,13 @@ func NewRouter(
 		r.Use(middlewares.AuthMiddleware(authService))
 
 		r.Route("/v1", func(r chi.Router) {
+			r.Route("/attachments", func(r chi.Router) {
+				r.Get("/{refID}", attachmentHandler.GetAttachmentsByRefID)
+				r.Get("/load/{id}", attachmentHandler.LoadImageByID)
+				r.Post("/", attachmentHandler.UploadFile)
+				r.Post("/multiple", attachmentHandler.UploadMultiple)
+			})
+
 			r.Route("/users", func(r chi.Router) {
 				r.Get("/", userHandler.ListUsers)
 				r.Get("/{userID}", userHandler.GetByID)
