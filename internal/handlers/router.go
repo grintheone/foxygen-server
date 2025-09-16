@@ -50,6 +50,10 @@ func NewRouter(
 	r.Use(middleware.Recoverer) // Recovers from panics
 	r.Use(middleware.RequestID) // Adds a request ID to each request
 
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Health is ok"))
+	})
+
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", authHandler.Login) // Main handler for further operations with the app
 		r.Post("/refresh", authHandler.Refresh)
@@ -61,6 +65,7 @@ func NewRouter(
 		r.Route("/v1", func(r chi.Router) {
 			r.Route("/departments", func(r chi.Router) {
 				r.Get("/", departmentHandler.ListAllDepartments)
+				r.Get("/{uuid}", departmentHandler.GetDepartmentByID)
 			})
 
 			r.Route("/attachments", func(r chi.Router) {

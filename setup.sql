@@ -17,6 +17,10 @@ DROP TABLE IF EXISTS tickets CASCADE;
 DROP TABLE IF EXISTS attachments CASCADE;
 DROP TABLE IF EXISTS departments CASCADE;
 
+
+-- Enable citext extension
+CREATE EXTENSION IF NOT EXISTS citext;
+
 -- Appends comment ID to corresponding tables
 -- CREATE OR REPLACE FUNCTION append_comment_to_reference()
 -- RETURNS TRIGGER AS $$
@@ -54,16 +58,6 @@ CREATE TABLE IF NOT EXISTS accounts (
     password_hash TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS users (
-    user_id UUID NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
-    first_name TEXT,
-    last_name TEXT,
-    department UUID,
-    email TEXT,
-    phone TEXT UNIQUE,
-    user_pic UUID
-);
-
 CREATE TABLE IF NOT EXISTS departments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL
@@ -79,6 +73,16 @@ INSERT INTO departments (id, title) VALUES
     ('9d798b43-9bdd-11ed-80fe-40b0765b1e01', 'Отдел исследования мочи'),
     ('add49497-f8f5-11e6-a1f7-001a64d22812', 'Сервис ЛИС'),
     ('c733447e-2567-11ea-80cd-40b0765b1e01', 'Отдел общих клинических исследований');
+
+CREATE TABLE IF NOT EXISTS users (
+    user_id UUID NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+    first_name TEXT,
+    last_name TEXT,
+    department UUID REFERENCES departments(id) ON DELETE SET NULL,
+    email TEXT,
+    phone TEXT UNIQUE,
+    user_pic UUID
+);
 
 -- test123
 INSERT INTO accounts (user_id, username, database, disabled, password_hash) VALUES
@@ -112,10 +116,10 @@ INSERT INTO account_roles (user_id, role_id) VALUES
 
 
 INSERT INTO users (user_id, first_name, last_name, department, email, phone, user_pic) VALUES
-    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'Админ', 'Главный', 'ad2fa382-cad3-2bc1-b4e7-f4a4f12cf54e', 'test1@gmail.com', 79992141831, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
-    ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'Координат', 'Иванович', 'ad2fa382-cad3-2bc1-b4e7-f4a4f12cf54e', 'test2@gmail.com', 79992141832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
-    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'Эмплои', 'Вадимович', 'ad2fa382-cad3-2bc1-b4e7-f4a4f12cf54e', 'test3@gmail.com', 79992146832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
-    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'Игнат', 'Валерьянович', 'ad2fa382-cad3-2bc1-b4e7-f4a4f12cf54e', 'test4@gmail.com', 79992142732, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e');
+    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'Админ', 'Главный', '1f62a255-ef3a-11e5-8d88-001a64d22812', 'test1@gmail.com', 79992141831, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
+    ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'Координат', 'Иванович', '1f62a259-ef3a-11e5-8d88-001a64d22812', 'test2@gmail.com', 79992141832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
+    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'Эмплои', 'Вадимович', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test3@gmail.com', 79992146832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
+    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'Игнат', 'Валерьянович', 'add49497-f8f5-11e6-a1f7-001a64d22812', 'test4@gmail.com', 79992142732, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e');
 
 -- Regions
 CREATE TABLE IF NOT EXISTS regions (
@@ -216,7 +220,7 @@ INSERT INTO regions (name, district) VALUES
 -- Comments
 CREATE TABLE IF NOT EXISTS comments (
     id SERIAL PRIMARY KEY,
-    author_id UUID NOT NULL,
+    author_id UUID NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
     reference_id UUID NOT NULL,
     text TEXT,
     created_at timestamp
@@ -260,9 +264,9 @@ VALUES (
 
 -- Insert a comment for a client
 INSERT INTO comments (author_id, reference_id, text, created_at)
-VALUES (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Client comment', (NOW() AT TIME ZONE 'UTC'));
+VALUES ('73c97b16-09b1-416e-94ad-f8952be14a19', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Client comment', (NOW() AT TIME ZONE 'UTC'));
 INSERT INTO comments (author_id, reference_id, text, created_at)
-VALUES (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'New comment', (NOW() AT TIME ZONE 'UTC'));
+VALUES ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'New comment', (NOW() AT TIME ZONE 'UTC'));
 
 
 -- Contacts

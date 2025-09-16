@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/services"
 )
 
@@ -18,4 +21,29 @@ func (h *DepartmentHandler) ListAllDepartments(w http.ResponseWriter, r *http.Re
 	}
 
 	writeJSON(w, http.StatusOK, departments)
+}
+
+func (h *DepartmentHandler) GetDepartmentByID(w http.ResponseWriter, r *http.Request) {
+	uuidStr := chi.URLParam(r, "uuid")
+
+	if uuidStr == "" {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	uuid, err := uuid.Parse(uuidStr)
+	if err != nil {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	department, err := h.service.GetDepartmentByID(r.Context(), uuid)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	fmt.Print(department, "after")
+
+	writeJSON(w, http.StatusOK, department)
 }

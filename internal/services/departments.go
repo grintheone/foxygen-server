@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
 	"github.com/grintheone/foxygen-server/internal/repository"
 )
@@ -23,4 +25,17 @@ func (s *DepartmentService) ListAllDepartments(ctx context.Context) ([]*models.D
 	}
 
 	return departments, nil
+}
+
+func (s *DepartmentService) GetDepartmentByID(ctx context.Context, uuid uuid.UUID) (*models.Department, error) {
+	department, err := s.repo.GetDepartmentByID(ctx, uuid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("service error fetching a department: %w", err)
+	}
+
+	return department, nil
 }

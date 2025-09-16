@@ -38,7 +38,7 @@ func main() {
 	// Start server in a goroutine
 	go func() {
 		log.Printf("Starting server on %s", cfg.Server.Address)
-		if err := srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem"); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServeTLS(cfg.Server.SSLSert, cfg.Server.SSLKey); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)
 		}
 	}()

@@ -17,6 +17,8 @@ type ServerConfig struct {
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
 	Secret       string
+	SSLKey       string
+	SSLSert      string
 }
 
 type DatabaseConfig struct {
@@ -36,13 +38,15 @@ func Load() *Config {
 			WriteTimeout: 30 * time.Second,
 			IdleTimeout:  1 * time.Minute,
 			Secret:       GetEnv("JWT_SECRET", ""),
+			SSLKey:       GetEnv("SSL_KEY_PATH", ""),
+			SSLSert:      GetEnv("SSL_CERT_PATH", ""),
 		},
 		Database: DatabaseConfig{
-			Host:     GetEnv("DB_HOST", "localhost"),
+			Host:     GetEnv("DB_HOST", "db"),
 			Port:     GetEnv("DB_PORT", "5432"),
-			User:     GetEnv("DB_USER", "grintheone"),
+			User:     GetEnv("DB_USER", ""),
 			Password: GetEnv("DB_PASSWORD", ""),
-			Name:     GetEnv("DB_NAME", "foxygendb"),
+			Name:     GetEnv("DB_NAME", ""),
 			SSLMode:  GetEnv("DB_SSLMODE", "disable"),
 		},
 	}

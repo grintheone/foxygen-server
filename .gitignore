@@ -26,10 +26,11 @@ go.work.sum
 
 # env file
 .env
+.env.docker
 *_test.go
 
 # Editor/IDE
 # .idea/
 # .vscode/
-tls
+ssl
 attachments
