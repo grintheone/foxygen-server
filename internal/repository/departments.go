@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
@@ -35,8 +34,6 @@ func (r *departmentRepo) ListAllDepartments(ctx context.Context) ([]*models.Depa
 
 func (r *departmentRepo) GetDepartmentByID(ctx context.Context, uuid uuid.UUID) (*models.Department, error) {
 	var department models.Department
-
-	fmt.Print(uuid)
 
 	err := r.db.GetContext(ctx, &department, `SELECT * FROM departments WHERE id = $1`, uuid)
 	if err != nil {

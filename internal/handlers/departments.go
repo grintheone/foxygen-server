@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -42,8 +41,6 @@ func (h *DepartmentHandler) GetDepartmentByID(w http.ResponseWriter, r *http.Req
 		serverError(w, err)
 		return
 	}
-
-	fmt.Print(department, "after")
 
 	writeJSON(w, http.StatusOK, department)
 }

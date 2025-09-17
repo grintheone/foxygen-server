@@ -23,6 +23,7 @@ func NewRouter(
 	ticketService *services.TicketService,
 	attachmentService *services.AttachmentService,
 	departmentService *services.DepartmentService,
+	agreementService *services.AgreementService,
 ) http.Handler {
 	r := chi.NewRouter()
 	// Initialize handlers
@@ -36,6 +37,7 @@ func NewRouter(
 	classificatorHandler := &ClassificatorHandler{classificatorService}
 	ticketHandler := &TicketHandler{ticketService}
 	departmentHandler := &DepartmentHandler{departmentService}
+	agreementHandler := &AgreementHandler{agreementService}
 
 	// Create upload directory
 	uploadDir := "./attachments"
@@ -63,6 +65,10 @@ func NewRouter(
 		r.Use(middlewares.AuthMiddleware(authService))
 
 		r.Route("/v1", func(r chi.Router) {
+			r.Route("/agreements", func(r chi.Router) {
+				r.Get("/{clientID}", agreementHandler.GetClientAgreements)
+			})
+
 			r.Route("/departments", func(r chi.Router) {
 				r.Get("/", departmentHandler.ListAllDepartments)
 				r.Get("/{uuid}", departmentHandler.GetDepartmentByID)

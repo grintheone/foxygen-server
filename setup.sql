@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS ticket_reasons CASCADE;
 DROP TABLE IF EXISTS tickets CASCADE;
 DROP TABLE IF EXISTS attachments CASCADE;
 DROP TABLE IF EXISTS departments CASCADE;
+DROP TABLE IF EXISTS agreements CASCADE;
 
 
 -- Enable citext extension
@@ -443,5 +444,24 @@ CREATE TABLE IF NOT EXISTS attachments (
     mime_type VARCHAR(100) NOT NULL,
     ref_id UUID NOT NULL
 );
+
+-- Agreements
+CREATE TABLE IF NOT EXISTS agreements (
+    id UUID PRIMARY KEY,
+    number TEXT,
+    actual_client UUID REFERENCES clients(id) ON DELETE SET NULL,
+    distributor UUID REFERENCES clients(id) ON DELETE SET NULL,
+    device UUID,
+    assigned_at timestamp DEFAULT NULL,
+    finished_at timestamp DEFAULT NULL,
+    is_active BOOLEAN DEFAULT true,
+    on_warranty BOOLEAN DEFAULT true,
+    type VARCHAR(128)
+);
+
+INSERT INTO agreements (id, actual_client, distributor, device, assigned_at, type) VALUES
+    (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', NOW(), 'rent');
+INSERT INTO agreements (id, actual_client, distributor, assigned_at, type) VALUES
+    (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW(), 'bought');
 
 COMMIT;
