@@ -17,7 +17,7 @@ func NewTicketService(r repository.TicketsRepository) *TicketService {
 	return &TicketService{repo: r}
 }
 
-func (s *TicketService) ListAllTickets(ctx context.Context) (*[]models.Ticket, error) {
+func (s *TicketService) ListAllTickets(ctx context.Context) ([]*models.Ticket, error) {
 	tickets, err := s.repo.ListAllTickets(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting all tickets: %w", err)
@@ -78,4 +78,13 @@ func (s *TicketService) GetTicketContactPerson(ctx context.Context, uuid uuid.UU
 	}
 
 	return contact, nil
+}
+
+func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID) ([]*models.Ticket, error) {
+	tickets, err := s.repo.GetTicketsByField(ctx, field, fieldUUID)
+	if err != nil {
+		return nil, fmt.Errorf("service error getting client tickets: %w", err)
+	}
+
+	return tickets, nil
 }

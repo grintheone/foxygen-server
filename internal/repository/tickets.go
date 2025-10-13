@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
@@ -10,13 +11,15 @@ import (
 )
 
 type TicketsRepository interface {
-	ListAllTickets(ctx context.Context) (*[]models.Ticket, error)
+	ListAllTickets(ctx context.Context) ([]*models.Ticket, error)
 	GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.Ticket, error)
 	DeleteTicketByID(ctx context.Context, uuid uuid.UUID) error
 	CreateNewTicket(ctx context.Context, payload models.Ticket) (*models.Ticket, error)
 	UpdateTicketInfo(ctx context.Context, uuid uuid.UUID, payload models.TicketUpdates) (*models.Ticket, error)
 	GetReasonInfoByID(ctx context.Context, id string) (*models.TicketReason, error)
 	GetTicketContactPerson(ctx context.Context, uuid uuid.UUID) (*models.Contact, error)
+	// GetClientTicketIDs(ctx context.Context, clientUUID uuid.UUID) ([]*uuid.UUID, error)
+	GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID) ([]*models.Ticket, error)
 }
 
 type ticketsRepository struct {
@@ -27,15 +30,15 @@ func NewTicketRepository(db *sqlx.DB) *ticketsRepository {
 	return &ticketsRepository{db}
 }
 
-func (r *ticketsRepository) ListAllTickets(ctx context.Context) (*[]models.Ticket, error) {
-	var tickets []models.Ticket
+func (r *ticketsRepository) ListAllTickets(ctx context.Context) ([]*models.Ticket, error) {
+	var tickets []*models.Ticket
 
 	err := r.db.SelectContext(ctx, &tickets, `SELECT * FROM tickets;`)
 	if err != nil {
 		return nil, err
 	}
 
-	return &tickets, nil
+	return tickets, nil
 }
 
 func (r *ticketsRepository) GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.Ticket, error) {
@@ -190,4 +193,42 @@ func (r *ticketsRepository) GetTicketContactPerson(ctx context.Context, uuid uui
 	}
 
 	return &contact, nil
+}
+
+// func (r *ticketsRepository) GetClientTicketIDs(ctx context.Context, clientUUID uuid.UUID) ([]*uuid.UUID, error) {
+// 	query := `
+// 		SELECT id FROM tickets WHERE client = $1
+// 	`
+
+// 	var ticketIDs []*uuid.UUID
+
+// 	err := r.db.SelectContext(ctx, &ticketIDs, query, clientUUID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return ticketIDs, nil
+// }
+
+func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID) ([]*models.Ticket, error) {
+	allowedFields := map[string]bool{
+		"client":   true,
+		"device":   true,
+		"executor": true,
+	}
+
+	if !allowedFields[field] {
+		return nil, fmt.Errorf("invalid filter field: %s", field)
+	}
+
+	query := fmt.Sprintf(`SELECT * FROM tickets WHERE %s = $1`, field)
+
+	var tickets []*models.Ticket
+
+	err := r.db.SelectContext(ctx, &tickets, query, fieldUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
 }

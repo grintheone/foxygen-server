@@ -151,3 +151,31 @@ func (h *TicketHandler) GetTicketContactPerson(w http.ResponseWriter, r *http.Re
 
 	writeJSON(w, http.StatusOK, contact)
 }
+
+func (h *TicketHandler) GetTicketsByField(w http.ResponseWriter, r *http.Request) {
+	field := chi.URLParam(r, "field")
+	if field == "" {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	uuidStr := chi.URLParam(r, "uuid")
+	if uuidStr == "" {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	fieldUUID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	ticketIDs, err := h.ticketService.GetTicketsByField(r.Context(), field, fieldUUID)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, ticketIDs)
+}

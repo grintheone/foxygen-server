@@ -127,6 +127,7 @@ func NewRouter(
 				r.Patch("/{uuid}", ticketHandler.UpdateTicketInfo)
 				r.Get("/reason/{id}", ticketHandler.GetReasonInfoByID)
 				r.Get("/contact/{uuid}", ticketHandler.GetTicketContactPerson)
+				r.Get("/{field}/{uuid}", ticketHandler.GetTicketsByField)
 			})
 
 			r.Route("/contacts", func(r chi.Router) {

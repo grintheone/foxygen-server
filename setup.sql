@@ -89,8 +89,8 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT INTO accounts (user_id, username, database, disabled, password_hash) VALUES
     ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'admin', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm'),
     ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'coordinator', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm'),
-    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'user_1', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm'),
-    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'user_2', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm');
+    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'user1', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm'),
+    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'user2', 'foxygendb', false, '$2a$10$TLTo5KFUlITFAWC.cDk9m.LtlUy22omjg3btZ7AuPi1lqmJRVwKLm');
 
 CREATE TABLE IF NOT EXISTS roles (
     id INT PRIMARY KEY,
@@ -117,10 +117,10 @@ INSERT INTO account_roles (user_id, role_id) VALUES
 
 
 INSERT INTO users (user_id, first_name, last_name, department, email, phone, user_pic) VALUES
-    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'Админ', 'Главный', '1f62a255-ef3a-11e5-8d88-001a64d22812', 'test1@gmail.com', 79992141831, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
-    ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'Координат', 'Иванович', '1f62a259-ef3a-11e5-8d88-001a64d22812', 'test2@gmail.com', 79992141832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
-    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'Эмплои', 'Вадимович', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test3@gmail.com', 79992146832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
-    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'Игнат', 'Валерьянович', 'add49497-f8f5-11e6-a1f7-001a64d22812', 'test4@gmail.com', 79992142732, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e');
+    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'Админ', '', '1f62a255-ef3a-11e5-8d88-001a64d22812', 'test1@gmail.com', 79992141831, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
+    ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'Координатор', '', '1f62a259-ef3a-11e5-8d88-001a64d22812', 'test2@gmail.com', 79992141832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
+    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'Пользователь', '1', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test3@gmail.com', 79992146832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
+    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'Пользователь', '2', 'add49497-f8f5-11e6-a1f7-001a64d22812', 'test4@gmail.com', 79992142732, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e');
 
 -- Regions
 CREATE TABLE IF NOT EXISTS regions (
@@ -255,9 +255,9 @@ INSERT INTO clients (
 )
 VALUES (
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- example UUID for client
-    'Client Name LLC',
+    'Центральная Больница г. Беломорск',
     '77', -- Reference to Moscow region (must exist in regions table)
-    'Moscow, Red Square, 1',
+    'Беломорск, Меретсковая ул., 6',
     '{"lat": 55.7539, "lng": 37.6208}', -- JSONB location with coordinates
     'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', -- TODO: ADD Laboraroty reference
     '{ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e}'
@@ -265,9 +265,9 @@ VALUES (
 
 -- Insert a comment for a client
 INSERT INTO comments (author_id, reference_id, text, created_at)
-VALUES ('73c97b16-09b1-416e-94ad-f8952be14a19', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Client comment', (NOW() AT TIME ZONE 'UTC'));
+VALUES ('73c97b16-09b1-416e-94ad-f8952be14a19', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Комментарий о проделанной работе', (NOW() AT TIME ZONE 'UTC'));
 INSERT INTO comments (author_id, reference_id, text, created_at)
-VALUES ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'New comment', (NOW() AT TIME ZONE 'UTC'));
+VALUES ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Еще один комментарий', (NOW() AT TIME ZONE 'UTC'));
 
 
 -- Contacts
@@ -283,7 +283,7 @@ CREATE TABLE IF NOT EXISTS contacts (
 INSERT INTO contacts (id, name, position, phone, email, client_id)
 VALUES ('27b1c3f2-f196-4885-8d56-9169e9f71e52', 'Вероника Васильевна', 'Заведующая лабораторией', '79992191217', 'someemail@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 INSERT INTO contacts (name, phone, email, client_id)
-VALUES ('Igor', '79992161721', 'grintheone@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+VALUES ('Иван Иванович', '79992161721', 'grdandhedne@gmail.com','a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
 
 -- Research Type
 CREATE TABLE IF NOT EXISTS research_type (
@@ -434,6 +434,9 @@ CREATE TABLE IF NOT EXISTS tickets (
 
 INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description) VALUES
 ('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.');
+
+INSERT INTO tickets (number, created_at, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description) VALUES
+('0002311', '2025-09-18T11:24:42.072Z', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Описание тикета');
 
 CREATE TABLE IF NOT EXISTS attachments (
     id SERIAL PRIMARY KEY,

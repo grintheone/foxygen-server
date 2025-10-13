@@ -30,7 +30,8 @@ COPY --from=builder /app/setup.sql .
 COPY --from=builder /app/.env .
 
 # Expose ports
-EXPOSE 8080 443
+# EXPOSE 8080 443
+EXPOSE 8080 8443
 
 # Command to run the executable
 CMD ["./main"]
