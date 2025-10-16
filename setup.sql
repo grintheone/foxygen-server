@@ -9,7 +9,7 @@ DROP TABLE IF EXISTS contacts CASCADE;
 DROP TABLE IF EXISTS research_type CASCADE;
 DROP TABLE IF EXISTS manufacturers CASCADE;
 DROP TABLE IF EXISTS devices CASCADE;
-DROP TABLE IF EXISTS classificator CASCADE;
+DROP TABLE IF EXISTS classificators CASCADE;
 DROP TABLE IF EXISTS ticket_statuses CASCADE;
 DROP TABLE IF EXISTS ticket_types CASCADE;
 DROP TABLE IF EXISTS ticket_reasons CASCADE;
@@ -324,7 +324,7 @@ INSERT INTO manufacturers (title) VALUES
 ('West Medica Produktions');
 
 -- Classificator
-CREATE TABLE IF NOT EXISTS classificator (
+CREATE TABLE IF NOT EXISTS classificators (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT,
     manufacturer UUID REFERENCES manufacturers(id) ON DELETE SET NULL,
@@ -335,13 +335,13 @@ CREATE TABLE IF NOT EXISTS classificator (
     images TEXT[] DEFAULT '{}'
 );
 
-INSERT INTO classificator (id, title)
+INSERT INTO classificators (id, title)
 VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Экспресс-анализатор Triage MeterPro');
 
 -- Devices
 CREATE TABLE IF NOT EXISTS devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    classificator UUID REFERENCES classificator(id) ON DELETE SET NULL,
+    classificator UUID REFERENCES classificators(id) ON DELETE SET NULL,
     serial_number TEXT UNIQUE,
     properties JSONB DEFAULT '{}',
     connected_to_lis BOOLEAN DEFAULT FALSE,
@@ -415,12 +415,14 @@ CREATE TABLE IF NOT EXISTS tickets (
     assigned_at timestamp DEFAULT (NOW() AT TIME ZONE 'UTC'), -- Change to NULL later,
     workstarted_at timestamp DEFAULT NULL,
     workfinished_at timestamp DEFAULT NULL,
+    deadline timestamp DEFAULT '2025-10-15T09:19:34.169Z',
+    urgent BOOLEAN DEFAULT false,
     closed_at timestamp DEFAULT NULL,
     client UUID REFERENCES clients(id) ON DELETE SET NULL,
     device UUID REFERENCES devices(id) ON DELETE SET NULL,
     ticket_type VARCHAR(128) REFERENCES ticket_types(type) ON DELETE SET NULL,
     author UUID REFERENCES accounts(user_id) ON DELETE SET NULL,
-    department UUID,
+    department UUID DEFAULT NULL,
     assigned_by UUID REFERENCES accounts(user_id) ON DELETE SET NULL,
     reason VARCHAR(128) REFERENCES ticket_reasons(id) ON DELETE SET NULL,
     description TEXT,
@@ -432,11 +434,14 @@ CREATE TABLE IF NOT EXISTS tickets (
     recommendation TEXT
 );
 
-INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description) VALUES
-('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.');
+INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, deadline, urgent, department) VALUES
+('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Контроль прохождения 9004 ', '2025-10-17T09:19:34.169Z', true, '1f62a256-ef3a-11e5-8d88-001a64d22812');
 
-INSERT INTO tickets (number, created_at, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description) VALUES
-('0002311', '2025-09-18T11:24:42.072Z', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Описание тикета');
+INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, deadline, urgent, department) VALUES
+('04144', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', '2025-10-13T09:19:34.169Z', true, '1f62a256-ef3a-11e5-8d88-001a64d22812');
+
+INSERT INTO tickets (number, created_at, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, department) VALUES
+('0002311', '2025-09-18T11:24:42.072Z', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Описание тикета', '1f62a256-ef3a-11e5-8d88-001a64d22812');
 
 CREATE TABLE IF NOT EXISTS attachments (
     id SERIAL PRIMARY KEY,

@@ -26,7 +26,7 @@ func NewClassificatorRepository(db *sqlx.DB) *classificatorRepository {
 }
 
 func (r *classificatorRepository) GetClassificatorByID(ctx context.Context, uuid uuid.UUID) (*models.Classificator, error) {
-	query := `SELECT * FROM classificator WHERE id = $1`
+	query := `SELECT * FROM classificators WHERE id = $1`
 
 	var c models.Classificator
 
@@ -42,7 +42,7 @@ func (r *classificatorRepository) GetClassificatorByID(ctx context.Context, uuid
 }
 
 func (r *classificatorRepository) GetDevicesByClassificatorID(ctx context.Context, uuid uuid.UUID) (*[]models.Device, error) {
-	query := `SELECT * FROM devices WHERE classificator = $1`
+	query := `SELECT * FROM devices WHERE classificators = $1`
 
 	var devices []models.Device
 	err := r.db.SelectContext(ctx, &devices, query, uuid)
@@ -55,7 +55,7 @@ func (r *classificatorRepository) GetDevicesByClassificatorID(ctx context.Contex
 
 func (r *classificatorRepository) NewClassificator(ctx context.Context, payload models.Classificator) (*models.Classificator, error) {
 	query := `
-		INSERT INTO classificator (title, manufacturer, research_type, registration_certificate, maintenance_regulations, attachments, images)
+		INSERT INTO classificators (title, manufacturer, research_type, registration_certificate, maintenance_regulations, attachments, images)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
 	`
@@ -71,7 +71,7 @@ func (r *classificatorRepository) NewClassificator(ctx context.Context, payload 
 }
 
 func (r *classificatorRepository) RemoveClassificatorByID(ctx context.Context, uuid uuid.UUID) error {
-	query := `DELETE FROM classificator WHERE id = $1`
+	query := `DELETE FROM classificators WHERE id = $1`
 
 	_, err := r.db.ExecContext(ctx, query, uuid)
 	if err != nil {
@@ -110,7 +110,7 @@ func (r *classificatorRepository) UpdateClassificatorInfo(ctx context.Context, u
 	}
 
 	query := `
-		UPDATE classificator
+		UPDATE classificators
 		SET title = :title, manufacturer = :manufacturer, research_type = :research_type, registration_certificate = :registration_certificate, maintenance_regulations = :maintenance_regulations, attachments = :attachments, images = :images
 		WHERE id = :id
 	`

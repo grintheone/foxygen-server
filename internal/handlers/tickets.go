@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/grintheone/foxygen-server/internal/middlewares"
 	"github.com/grintheone/foxygen-server/internal/models"
 	"github.com/grintheone/foxygen-server/internal/services"
 )
@@ -14,7 +16,13 @@ type TicketHandler struct {
 }
 
 func (h *TicketHandler) ListAllTickets(w http.ResponseWriter, r *http.Request) {
-	tickets, err := h.ticketService.ListAllTickets(r.Context())
+	executorID, ok := middlewares.GetUserIDFromContext(r.Context())
+	if !ok {
+		serverError(w, fmt.Errorf("Unable to check for user role"))
+		return
+	}
+
+	tickets, err := h.ticketService.ListAllTickets(r.Context(), executorID)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -70,7 +78,7 @@ func (h *TicketHandler) DeleteTicketByID(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *TicketHandler) CreateNewTicket(w http.ResponseWriter, r *http.Request) {
-	var body models.Ticket
+	var body models.RawTicket
 
 	if !decodeJSONBody(w, r, &body) {
 		return

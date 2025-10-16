@@ -2,10 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"runtime/debug"
 	"strconv"
 
 	"github.com/grintheone/foxygen-server/internal/models"
@@ -14,8 +12,9 @@ import (
 // The serverError helper writes an error message and stack trace to the errorLog,
 // then sends a generic 500 Internal Server Error response to the user.
 func serverError(w http.ResponseWriter, err error) {
-	trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
-	log.Print(trace)
+	// trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
+	// log.Print(trace)
+	log.Print(err.Error())
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 

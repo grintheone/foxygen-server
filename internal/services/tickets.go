@@ -17,8 +17,8 @@ func NewTicketService(r repository.TicketsRepository) *TicketService {
 	return &TicketService{repo: r}
 }
 
-func (s *TicketService) ListAllTickets(ctx context.Context) ([]*models.Ticket, error) {
-	tickets, err := s.repo.ListAllTickets(ctx)
+func (s *TicketService) ListAllTickets(ctx context.Context, executorID string) ([]*models.TicketCard, error) {
+	tickets, err := s.repo.ListAllTickets(ctx, executorID)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting all tickets: %w", err)
 	}
@@ -26,7 +26,7 @@ func (s *TicketService) ListAllTickets(ctx context.Context) ([]*models.Ticket, e
 	return tickets, nil
 }
 
-func (s *TicketService) GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.Ticket, error) {
+func (s *TicketService) GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.TicketSinglePage, error) {
 	ticket, err := s.repo.GetTicketByID(ctx, uuid)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting ticket by ID: %w", err)
@@ -44,7 +44,7 @@ func (s *TicketService) DeleteTicketByID(ctx context.Context, uuid uuid.UUID) er
 	return nil
 }
 
-func (s *TicketService) CreateNewTicket(ctx context.Context, payload models.Ticket) (*models.Ticket, error) {
+func (s *TicketService) CreateNewTicket(ctx context.Context, payload models.RawTicket) (*models.RawTicket, error) {
 	created, err := s.repo.CreateNewTicket(ctx, payload)
 	if err != nil {
 		return nil, fmt.Errorf("service error creating new ticket: %w", err)
@@ -53,7 +53,7 @@ func (s *TicketService) CreateNewTicket(ctx context.Context, payload models.Tick
 	return created, nil
 }
 
-func (s *TicketService) UpdateTicketInfo(ctx context.Context, uuid uuid.UUID, payload models.TicketUpdates) (*models.Ticket, error) {
+func (s *TicketService) UpdateTicketInfo(ctx context.Context, uuid uuid.UUID, payload models.TicketUpdates) (*models.TicketSinglePage, error) {
 	updated, err := s.repo.UpdateTicketInfo(ctx, uuid, payload)
 	if err != nil {
 		return nil, fmt.Errorf("service error updating ticket info: %w", err)
@@ -80,7 +80,7 @@ func (s *TicketService) GetTicketContactPerson(ctx context.Context, uuid uuid.UU
 	return contact, nil
 }
 
-func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID) ([]*models.Ticket, error) {
+func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID) ([]*models.RawTicket, error) {
 	tickets, err := s.repo.GetTicketsByField(ctx, field, fieldUUID)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting client tickets: %w", err)
