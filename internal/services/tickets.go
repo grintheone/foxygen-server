@@ -80,8 +80,8 @@ func (s *TicketService) GetTicketContactPerson(ctx context.Context, uuid uuid.UU
 	return contact, nil
 }
 
-func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID) ([]*models.RawTicket, error) {
-	tickets, err := s.repo.GetTicketsByField(ctx, field, fieldUUID)
+func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) ([]*models.TicketCard, error) {
+	tickets, err := s.repo.GetTicketsByField(ctx, field, fieldUUID, filters)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting client tickets: %w", err)
 	}

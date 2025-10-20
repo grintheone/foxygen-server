@@ -84,8 +84,11 @@ type TicketCard struct {
 	Urgent         bool       `json:"urgent" db:"urgent"`
 	Reason         string     `json:"reason" db:"reason"`
 	Status         string     `json:"status" db:"status"`
+	Result         string     `json:"result" db:"result"`
 	WorkStartedAt  *time.Time `json:"workstarted_at" db:"workstarted_at"`
 	WorkFinishedAt *time.Time `json:"workfinished_at" db:"workfinished_at"`
+	Executor       string     `json:"executor" db:"executor"`
+	Department     string     `json:"department" db:"department"`
 	// Device fields
 	DeviceSerialNumber       *string `json:"device_serial_number" db:"device_serial_number"`
 	DeviceClassificatorTitle *string `json:"device_classificator_title" db:"device_classificator_title"`
@@ -101,4 +104,8 @@ type TicketUpdates struct {
 	Result         *string    `json:"result" db:"result"`
 	Recommendation *string    `json:"recommendation" db:"recommendation"`
 	ClosedAt       *time.Time `json:"closed_at" db:"closed_at"`
+}
+
+type TicketFilters struct {
+	Status string `json:"status"`
 }

@@ -429,7 +429,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     contact_person UUID REFERENCES contacts(id) ON DELETE SET NULL,
     executor UUID REFERENCES accounts(user_id) ON DELETE SET NULL,
     status VARCHAR(128) REFERENCES ticket_statuses(type) ON DELETE SET NULL,
-    result TEXT,
+    result TEXT DEFAULT '',
     used_materials UUID[] DEFAULT '{}',
     recommendation TEXT
 );
@@ -459,7 +459,7 @@ CREATE TABLE IF NOT EXISTS agreements (
     number TEXT,
     actual_client UUID REFERENCES clients(id) ON DELETE SET NULL,
     distributor UUID REFERENCES clients(id) ON DELETE SET NULL,
-    device UUID,
+    device UUID REFERENCES devices(id) ON DELETE SET NULL,
     assigned_at timestamp DEFAULT NULL,
     finished_at timestamp DEFAULT NULL,
     is_active BOOLEAN DEFAULT true,

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -179,11 +180,20 @@ func (h *TicketHandler) GetTicketsByField(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ticketIDs, err := h.ticketService.GetTicketsByField(r.Context(), field, fieldUUID)
+	f := r.URL.Query().Get("filters")
+
+	var filters models.TicketFilters
+	err = json.Unmarshal([]byte(f), &filters)
+	if err != nil {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	tickets, err := h.ticketService.GetTicketsByField(r.Context(), field, fieldUUID, filters)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, ticketIDs)
+	writeJSON(w, http.StatusOK, tickets)
 }
