@@ -113,3 +113,22 @@ func (h *DeviceHandler) UpdateDeviceByID(w http.ResponseWriter, r *http.Request)
 
 	writeJSON(w, http.StatusOK, updated)
 }
+
+func (h *DeviceHandler) GetDeviceRemoteOptions(w http.ResponseWriter, r *http.Request) {
+	uuidStr := chi.URLParam(r, "uuid")
+
+	if uuidStr == "" {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	uuid, err := uuid.Parse(uuidStr)
+	if err != nil {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	options, err := h.deviceService.GetDeviceRemoteOptions(r.Context(), uuid)
+
+	writeJSON(w, http.StatusOK, options)
+}

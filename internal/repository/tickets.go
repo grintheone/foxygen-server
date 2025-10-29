@@ -19,7 +19,7 @@ type TicketsRepository interface {
 	GetReasonInfoByID(ctx context.Context, id string) (*models.TicketReason, error)
 	GetTicketContactPerson(ctx context.Context, uuid uuid.UUID) (*models.Contact, error)
 	// GetClientTicketIDs(ctx context.Context, clientUUID uuid.UUID) ([]*uuid.UUID, error)
-	GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) ([]*models.TicketCard, error)
+	GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) (*models.TicketArchiveResponse, error)
 }
 
 type ticketsRepository struct {
@@ -247,11 +247,7 @@ func (r *ticketsRepository) GetTicketContactPerson(ctx context.Context, uuid uui
 	return &contact, nil
 }
 
-func queryBuilder(filters models.TicketFilters) string {
-	return ""
-}
-
-func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) ([]*models.TicketCard, error) {
+func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) (*models.TicketArchiveResponse, error) {
 	allowedFields := map[string]bool{
 		"client":   true,
 		"device":   true,
@@ -262,9 +258,6 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 		return nil, fmt.Errorf("invalid filter field: %s", field)
 	}
 
-	fmt.Printf("%#v", filters)
-
-	// query := fmt.Sprintf(`SELECT * FROM tickets WHERE %s = $1`, field)
 	query := fmt.Sprintf(`
 	SELECT
     t.id,
@@ -273,6 +266,7 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
     t.urgent,
     t.status,
     t.result,
+    t.created_at,
     t.workstarted_at,
     t.workfinished_at,
     TRIM(CONCAT(ex.first_name, ' ', ex.last_name)) as executor,
@@ -285,15 +279,7 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
     cl.title as client_name,
     cl.address as client_address,
     -- Change reason id to readable name
-    CASE
-    	WHEN t.status = 'created' THEN tr.future
-	  	WHEN t.status = 'assigned' THEN tr.future
-	   	WHEN t.status = 'inWork' THEN tr.present
-	   	WHEN t.status = 'worksDone' THEN tr.past
-	   	WHEN t.status = 'closed' THEN tr.past
-	   	WHEN t.status = 'cancelled' THEN tr.present
-		ELSE 'Нет данных'
-    END AS reason
+    tr.title as reason
 	FROM tickets t
 	LEFT JOIN devices d ON t.device = d.id
 	LEFT JOIN classificator c ON d.classificator = c.id
@@ -305,22 +291,72 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 		AND ($2 = 'closed' AND t.status = 'closed')
   		OR ($2 = 'in-progress' AND t.status IN ('inWork', 'worksDone'))
     	OR ($2 = 'all')
-	ORDER BY
-	CASE
-        WHEN deadline::TIMESTAMP < NOW() THEN 0  -- Overdue first
-        WHEN urgent = TRUE THEN 1    -- Then urgent
-        ELSE 2                                   -- Then everything else
-    END,
-    deadline::TIMESTAMP ASC;  -- Sort by deadline within each group
 	`, field)
 
-	// query := "SELECT * FROM tickets WHERE executor = $1"
+	args := []any{
+		fieldUUID,
+		filters.Status,
+	}
+	argPos := 3
+
+	if filters.Reason != nil {
+		query += fmt.Sprintf(" AND tr.id = $%d", argPos)
+        args = append(args, *filters.Reason)
+        argPos++
+	}
+
 	var tickets []*models.TicketCard
 
-	err := r.db.SelectContext(ctx, &tickets, query, fieldUUID, filters.Status)
+	err := r.db.SelectContext(ctx, &tickets, query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return tickets, nil
+	var filterDates []string
+	query = fmt.Sprintf(`
+		SELECT DISTINCT created_at FROM
+		tickets t
+		WHERE %s = $1
+			AND ($2 = 'closed' AND t.status = 'closed')
+  		OR ($2 = 'in-progress' AND t.status IN ('inWork', 'worksDone'))
+    	OR ($2 = 'all')
+     	ORDER BY created_at ASC
+	`, field)
+
+	err = r.db.SelectContext(ctx, &filterDates, query, fieldUUID, filters.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	var reasons []struct{
+		Reason string `db:"reason" json:"reason"`
+		Title string `db:"title" json:"title"`
+	}
+	query = fmt.Sprintf(`
+		SELECT DISTINCT
+			t.reason,
+		 	tr.title as title
+		FROM
+		tickets t
+		LEFT JOIN ticket_reasons tr ON t.reason = tr.id
+		WHERE %s = $1
+			AND ($2 = 'closed' AND t.status = 'closed')
+  			OR ($2 = 'in-progress' AND t.status IN ('inWork', 'worksDone'))
+    		OR ($2 = 'all')
+	`, field)
+
+	err = r.db.SelectContext(ctx, &reasons, query, fieldUUID, filters.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	var response = models.TicketArchiveResponse{
+		Filters: make(map[string]any),
+	}
+
+	response.Tickets = tickets
+	response.Filters["availableDates"] = filterDates
+	response.Filters["reasons"] = reasons
+
+	return &response, nil
 }

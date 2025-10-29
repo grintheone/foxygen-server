@@ -80,11 +80,54 @@ func (s *TicketService) GetTicketContactPerson(ctx context.Context, uuid uuid.UU
 	return contact, nil
 }
 
-func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) ([]*models.TicketCard, error) {
-	tickets, err := s.repo.GetTicketsByField(ctx, field, fieldUUID, filters)
+func groupTicketsByMonth(tickets []*models.TicketCard, status string) map[string][]*models.TicketCard {
+	var monthKey string
+	grouped := make(map[string][]*models.TicketCard)
+	for _, ticket := range tickets {
+		if status == "closed" {
+			monthKey = ticket.WorkFinishedAt.Format("2006-01")
+		} else {
+			monthKey = ticket.CreatedAt.Format("2006-01")
+		}
+		grouped[monthKey] = append(grouped[monthKey], ticket)
+	}
+
+	return grouped
+}
+
+func groupTicketsByReason(tickets []*models.TicketCard) map[string][]*models.TicketCard {
+	var reasonKey string
+	grouped := make(map[string][]*models.TicketCard)
+	for _, ticket := range tickets {
+		reasonKey = ticket.Reason
+		grouped[reasonKey] = append(grouped[reasonKey], ticket)
+	}
+
+	return grouped
+}
+
+func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) (*models.TicketArchiveResponseGrouped, error) {
+	response, err := s.repo.GetTicketsByField(ctx, field, fieldUUID, filters)
+	var groupedResponse models.TicketArchiveResponseGrouped
+	groupedResponse.Filters = response.Filters
+
 	if err != nil {
 		return nil, fmt.Errorf("service error getting client tickets: %w", err)
 	}
 
-	return tickets, nil
+	if filters.GroupBy != nil && *filters.GroupBy == "month" {
+		grouped := groupTicketsByMonth(response.Tickets, filters.Status)
+		groupedResponse.Tickets = grouped
+
+		return &groupedResponse, nil
+	}
+
+	if filters.GroupBy != nil && *filters.GroupBy == "reason" {
+		grouped := groupTicketsByReason(response.Tickets)
+		groupedResponse.Tickets = grouped
+
+		return &groupedResponse, nil
+	}
+
+	return &groupedResponse, nil
 }

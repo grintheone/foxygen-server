@@ -66,6 +66,7 @@ func NewRouter(
 
 		r.Route("/v1", func(r chi.Router) {
 			r.Route("/agreements", func(r chi.Router) {
+				r.Get("/{field}/{uuid}", agreementHandler.GetAgreementsByField)
 				r.Get("/{clientID}", agreementHandler.GetClientAgreements)
 			})
 
@@ -109,6 +110,7 @@ func NewRouter(
 				r.Get("/{uuid}", deviceHandler.GetDeviceByID)
 				r.Delete("/{uuid}", deviceHandler.RemoveDeviceByID)
 				r.Patch("/{uuid}", deviceHandler.UpdateDeviceByID)
+				r.Get("/remote-options/{uuid}", deviceHandler.GetDeviceRemoteOptions)
 			})
 
 			r.Route("/classificators", func(r chi.Router) {

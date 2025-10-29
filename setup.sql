@@ -17,6 +17,8 @@ DROP TABLE IF EXISTS tickets CASCADE;
 DROP TABLE IF EXISTS attachments CASCADE;
 DROP TABLE IF EXISTS departments CASCADE;
 DROP TABLE IF EXISTS agreements CASCADE;
+DROP TABLE IF EXISTS ra_options CASCADE;
+DROP TABLE IF EXISTS remote_access CASCADE;
 
 
 -- Enable citext extension
@@ -265,7 +267,7 @@ VALUES (
 
 -- Insert a comment for a client
 INSERT INTO comments (author_id, reference_id, text, created_at)
-VALUES ('73c97b16-09b1-416e-94ad-f8952be14a19', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Комментарий о проделанной работе', (NOW() AT TIME ZONE 'UTC'));
+VALUES ('73c97b16-09b1-416e-94ad-f8952be14a19', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'Комментарий о проделанной работе', (NOW() AT TIME ZONE 'UTC'));
 INSERT INTO comments (author_id, reference_id, text, created_at)
 VALUES ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Еще один комментарий', (NOW() AT TIME ZONE 'UTC'));
 
@@ -343,7 +345,7 @@ CREATE TABLE IF NOT EXISTS devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     classificator UUID REFERENCES classificators(id) ON DELETE SET NULL,
     serial_number TEXT UNIQUE,
-    properties JSONB DEFAULT '{}',
+    properties JSONB DEFAULT '{"ЛИС": "Ариадна", "Тип исследований": "Иммунохимия"}',
     connected_to_lis BOOLEAN DEFAULT FALSE,
     is_used BOOLEAN DEFAULT FALSE
 );
@@ -434,14 +436,14 @@ CREATE TABLE IF NOT EXISTS tickets (
     recommendation TEXT
 );
 
-INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, deadline, urgent, department) VALUES
-('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Контроль прохождения 9004 ', '2025-10-17T09:19:34.169Z', true, '1f62a256-ef3a-11e5-8d88-001a64d22812');
+INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, deadline, urgent, department, created_at) VALUES
+('0002314', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Контроль прохождения 9004 ', '2025-11-17T09:19:34.169Z', false, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-12-13T09:19:34.169Z');
 
-INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, deadline, urgent, department) VALUES
-('04144', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', '2025-10-13T09:19:34.169Z', true, '1f62a256-ef3a-11e5-8d88-001a64d22812');
+INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, deadline, urgent, department, created_at) VALUES
+('04144', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', '2025-06-13T09:19:34.169Z', true, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-12-13T09:19:34.169Z');
 
 INSERT INTO tickets (number, created_at, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, department) VALUES
-('0002311', '2025-09-18T11:24:42.072Z', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Описание тикета', '1f62a256-ef3a-11e5-8d88-001a64d22812');
+('0002311', '2025-08-18T11:24:42.072Z', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Описание тикета', '1f62a256-ef3a-11e5-8d88-001a64d22812');
 
 CREATE TABLE IF NOT EXISTS attachments (
     id SERIAL PRIMARY KEY,
@@ -471,5 +473,29 @@ INSERT INTO agreements (id, actual_client, distributor, device, assigned_at, typ
     (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', NOW(), 'rent');
 INSERT INTO agreements (id, actual_client, distributor, assigned_at, type) VALUES
     (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW(), 'bought');
+
+
+CREATE TABLE IF NOT EXISTS ra_options (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT DEFAULT ''
+);
+
+INSERT INTO ra_options (id, title) VALUES
+    ('95e0f8d9-b497-4d38-844d-10e5746f3aa1', 'RDP'),
+    ('51dfb946-b0c9-4503-9fbe-96ea5329095f', 'AmmyAdmin'),
+    ('fd23c3d9-2a55-45db-8f74-a1f7af9769b5', 'TeamViewer');
+
+
+CREATE TABLE IF NOT EXISTS remote_access (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+    parameter_id UUID REFERENCES ra_options(id) ON DELETE SET NULL,
+    value JSONB DEFAULT '{}'
+);
+
+INSERT INTO remote_access (device_id, parameter_id) VALUES
+    ('2ecc4df8-cd7a-412d-9362-09b047a67c30', '95e0f8d9-b497-4d38-844d-10e5746f3aa1'),
+    ('2ecc4df8-cd7a-412d-9362-09b047a67c30', '51dfb946-b0c9-4503-9fbe-96ea5329095f'),
+    ('2ecc4df8-cd7a-412d-9362-09b047a67c30', 'fd23c3d9-2a55-45db-8f74-a1f7af9769b5');
 
 COMMIT;

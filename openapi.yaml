@@ -1,0 +1,423 @@
+openapi: 3.2.0
+info:
+    title: Mobile Engineer API
+    version: 0.0.1
+servers:
+    url: http://192.168.5.235:3000/api/v1
+    description: Production server
+paths:
+    /classificators/{id}:
+        get:
+              description: Get a classificator by ID
+              parameters:
+                - name: id
+                  in: path
+                  required: true
+                  description: UUID of the classificator to retrieve
+                  schema:
+                    type: string
+                    format: uuid
+              responses:
+                '200':
+                  description: Successful response
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Classificator'
+
+
+    /classificators/devices/{id}:
+        get:
+        description: Retrieve all devices associated with a specific classificator. Returns an array of devices or null if empty.
+        parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the classificator to retrieve devices for
+          schema:
+            type: string
+            format: uuid
+        responses:
+        '200':
+          description: Successful response - returns array of devices or null
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Device'
+                  - type: "null"
+
+    /classificators:
+        post:
+          summary: Create a new classificator
+          description: Create a new classificator with the provided data
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Classificator'
+        responses:
+               '201':
+                 description: Classificator created successfully
+                 content:
+                   application/json:
+                     schema:
+                       $ref: '#/components/schemas/Classificator'
+
+    /classificators/{id}:
+        delete:
+          description: Delete a specific classificator by ID and return the deleted ID
+          parameters:
+            - name: id
+              in: path
+              required: true
+              description: UUID of the classificator to delete
+              schema:
+                type: string
+                format: uuid
+          responses:
+            '200':
+              description: Classificator deleted successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        description: The ID of the deleted classificator
+
+    /classificators/{id}:
+        patch:
+          description: Partially update a specific classificator. Only provided fields will be updated.
+          parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                type: string
+                format: uuid
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ClassificatorUpdate'
+          responses:
+            '200':
+              description: Classificator updated successfully
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Classificator'
+
+    /devices:
+        get:
+          summary: Get all devices
+          description: Retrieve a list of all devices. Returns an array of devices or null if empty.
+          responses:
+            '200':
+              description: Successful response - returns array of devices or null
+              content:
+                application/json:
+                  schema:
+                    oneOf:
+                      - type: array
+                        items:
+                          $ref: '#/components/schemas/Device'
+                      - type: "null"
+
+    /devices:
+        post:
+          summary: Create a new device
+          description: Create a new device with the provided data
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Device'
+          responses:
+            '201':
+              description: Device created successfully
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Device'
+
+    /devices/{id}:
+        get:
+          description: Retrieve detailed information about a specific device including classificator title
+          parameters:
+            - name: id
+              in: path
+              required: true
+              description: UUID of the device to retrieve
+              schema:
+                type: string
+                format: uuid
+          responses:
+            '200':
+              description: Successful response
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/DeviceSinglePage'
+
+    /devices/{id}:
+        delete:
+          summary: Delete a device
+          description: Delete a specific device by ID and return the deleted ID
+          parameters:
+            - name: id
+              in: path
+              required: true
+              description: UUID of the device to delete
+              schema:
+                type: string
+                format: uuid
+          responses:
+            '200':
+              description: Device deleted successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        description: The ID of the deleted device
+
+    /devices/{id}:
+        patch:
+          summary: Update a device
+          description: Partially update a specific device. Only provided fields will be updated.
+          parameters:
+            - name: id
+              in: path
+              required: true
+              description: UUID of the device to update
+              schema:
+                type: string
+                format: uuid
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DeviceUpdates'
+          responses:
+            '200':
+              description: Device updated successfully
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/DeviceSinglePage'
+
+    /devices/remote-options/{id}:
+        get:
+          summary: Get device remote options
+          description: Retrieve remote options available for a specific device. Returns an array of remote options or null if empty.
+          parameters:
+            - name: id
+              in: path
+              required: true
+              description: UUID of the device to get remote options for
+              schema:
+                type: string
+                format: uuid
+          responses:
+            '200':
+              description: Successful response - returns array of remote options or null
+              content:
+                application/json:
+                  schema:
+                    oneOf:
+                      - type: array
+                        items:
+                          $ref: '#/components/schemas/DeviceRemoteOption'
+                      - type: "null"
+
+components:
+  schemas:
+    Classificator:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        manufacturer:
+          type: string
+          format: uuid
+          nullable: true
+        research_type:
+          type: string
+          format: uuid
+          nullable: true
+        registration_certificate:
+          type: object
+          description: Registration certificate data in JSONB format
+          additionalProperties: true
+        maintenance_regulations:
+          type: object
+          description: Maintenance regulations data in JSONB format
+          additionalProperties: true
+        attachments:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+    required:
+        - id
+        - title
+    ClassificatorUpdate:
+        type: object
+        properties:
+        title:
+            type: string
+            nullable: true
+        manufacturer:
+            type: string
+            format: uuid
+            nullable: true
+        research_type:
+            type: string
+            format: uuid
+            nullable: true
+        registration_certificate:
+            type: object
+            description: Registration certificate data in JSONB format
+            additionalProperties: true
+            nullable: true
+        maintenance_regulations:
+            type: object
+            description: Maintenance regulations data in JSONB format
+            additionalProperties: true
+            nullable: true
+        attachments:
+            type: array
+            items:
+            type: string
+            description: Array of attachment URLs or identifiers
+            nullable: true
+        images:
+            type: array
+            items:
+            type: string
+            description: Array of image URLs or identifiers
+            nullable: true
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the device
+        classificator:
+          type: string
+          format: uuid
+          description: UUID of the associated classificator
+        serial_number:
+          type: string
+          description: Serial number of the device
+          example: "SN-12345"
+        properties:
+          type: object
+          description: Device properties in JSONB format
+          additionalProperties: true
+        connected_to_lis:
+          type: boolean
+          example: true
+        is_used:
+          type: boolean
+          example: false
+      required:
+        - id
+        - classificator
+        - serial_number
+        - connected_to_lis
+        - is_used
+
+    DeviceSinglePage:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: Unique identifier for the device
+            classificator:
+              type: string
+              description: Title of the associated classificator
+            serial_number:
+              type: string
+              description: Serial number of the device
+            properties:
+              type: object
+              description: Device properties in JSONB format
+              additionalProperties: true
+            connected_to_lis:
+              type: boolean
+              description: Whether the device is connected to LIS
+              example: true
+            is_used:
+              type: boolean
+              description: Whether the device is currently in use
+              example: false
+          required:
+            - id
+            - classificator
+            - serial_number
+            - connected_to_lis
+            - is_used
+
+    DeviceUpdates:
+          type: object
+          properties:
+            classificator:
+              type: string
+              format: uuid
+              nullable: true
+              description: UUID of the associated classificator
+            serial_number:
+              type: string
+              nullable: true
+              description: Serial number of the device
+            properties:
+              type: object
+              description: Device properties in JSONB format
+              additionalProperties: true
+              nullable: true
+            connected_to_lis:
+              type: boolean
+              nullable: true
+              description: Whether the device is connected to LIS
+              example: false
+            is_used:
+              type: boolean
+              nullable: true
+              description: Whether the device is currently in use
+              example: true
+
+    DeviceRemoteOption:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: Unique identifier for the remote option
+            title:
+              type: string
+              description: Title of the remote option
+          required:
+            - id
+            - title

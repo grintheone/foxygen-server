@@ -93,8 +93,9 @@ type TicketCard struct {
 	DeviceSerialNumber       *string `json:"device_serial_number" db:"device_serial_number"`
 	DeviceClassificatorTitle *string `json:"device_classificator_title" db:"device_classificator_title"`
 	// Client fields
-	ClientName    *string `json:"client_name" db:"client_name"`
-	ClientAddress *string `json:"client_address" db:"client_address"`
+	ClientName    *string   `json:"client_name" db:"client_name"`
+	ClientAddress *string   `json:"client_address" db:"client_address"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 }
 
 type TicketUpdates struct {
@@ -107,5 +108,17 @@ type TicketUpdates struct {
 }
 
 type TicketFilters struct {
-	Status string `json:"status"`
+	Status  string  `json:"status"`
+	GroupBy *string `json:"groupBy"`
+	Reason *string `json:"reason"`
+}
+
+type TicketArchiveResponse struct {
+	Tickets []*TicketCard `json:"tickets"`
+	Filters map[string]any `json:"filters"`
+}
+
+type TicketArchiveResponseGrouped struct {
+	TicketArchiveResponse
+	Tickets map[string][]*TicketCard `json:"tickets"`
 }

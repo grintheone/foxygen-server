@@ -25,7 +25,7 @@ func (s *DeviceService) GetAllDevices(ctx context.Context) (*[]models.Device, er
 	return devices, nil
 }
 
-func (s *DeviceService) GetDeviceByID(ctx context.Context, uuid uuid.UUID) (*models.Device, error) {
+func (s *DeviceService) GetDeviceByID(ctx context.Context, uuid uuid.UUID) (*models.DeviceSinglePage, error) {
 	device, err := s.repo.GetDeviceByID(ctx, uuid)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting device by ID: %w", err)
@@ -52,11 +52,20 @@ func (s *DeviceService) CreateNewDevice(ctx context.Context, payload models.Devi
 	return created, nil
 }
 
-func (s *DeviceService) UpdateDeviceByID(ctx context.Context, uuid uuid.UUID, payload models.DeviceUpdates) (*models.Device, error) {
+func (s *DeviceService) UpdateDeviceByID(ctx context.Context, uuid uuid.UUID, payload models.DeviceUpdates) (*models.DeviceSinglePage, error) {
 	updated, err := s.repo.UpdateDeviceByID(ctx, uuid, payload)
 	if err != nil {
 		return nil, fmt.Errorf("service error updating device: %w", err)
 	}
 
 	return updated, nil
+}
+
+func (s *DeviceService) GetDeviceRemoteOptions(ctx context.Context, uuid uuid.UUID) ([]*models.DeviceRemoteOption, error) {
+	options, err := s.repo.GetDeviceRemoteOptions(ctx, uuid)
+	if err != nil {
+		return nil, fmt.Errorf("service error getting remote options: %w", err)
+	}
+
+	return options, nil
 }

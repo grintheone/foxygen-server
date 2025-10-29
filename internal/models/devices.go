@@ -38,6 +38,16 @@ type Device struct {
 	IsUsed          bool      `json:"is_used" db:"is_used"`
 }
 
+type DeviceSinglePage struct {
+	Device
+	Classificator string `json:"classificator" db:"classificator"`
+}
+
+type DeviceRemoteOption struct {
+	ID    uuid.UUID `json:"id" db:"id"`
+	Title string    `json:"title" db:"title"`
+}
+
 type DeviceUpdates struct {
 	Classificator   *uuid.UUID `json:"classificator" db:"classificator"`
 	SerialNumber    *string    `json:"serial_number" db:"serial_number"`
