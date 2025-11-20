@@ -13,6 +13,18 @@ type UserHandler struct {
 	userService *services.UserService
 }
 
+func (h *UserHandler) ListUsersByDepartmentID(w http.ResponseWriter, r *http.Request) {
+	depTitle := chi.URLParam(r, "title")
+
+	users, err := h.userService.ListUsersByDepartmentID(r.Context(), depTitle)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, users)
+}
+
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 

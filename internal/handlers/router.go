@@ -87,6 +87,7 @@ func NewRouter(
 				r.Get("/{userID}", userHandler.GetByID)
 				r.Delete("/{userID}", userHandler.DeleteUser)
 				r.Patch("/{userID}", userHandler.UpdateUser)
+				r.Get("/department/{title}", userHandler.ListUsersByDepartmentID)
 			})
 
 			r.Route("/clients", func(r chi.Router) {

@@ -54,3 +54,12 @@ func (s *UserService) UpdateUser(ctx context.Context, user models.User) error {
 
 	return nil
 }
+
+func (s *UserService) ListUsersByDepartmentID(ctx context.Context, depTitle string) ([]*models.User, error) {
+	users, err := s.userRepo.ListUsersByDepartmentID(ctx, depTitle)
+	if err != nil {
+		return nil, fmt.Errorf("service error retrieving the list of users: %w", err)
+	}
+
+	return users, nil
+}

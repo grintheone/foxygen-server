@@ -10,6 +10,7 @@ import (
 )
 
 type UsersRepository interface {
+	ListUsersByDepartmentID(ctx context.Context, depTitle string) ([]*models.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error)
 	ListUsers(ctx context.Context) (*[]models.User, error)
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
@@ -73,4 +74,19 @@ func (r *usersRepository) UpdateUser(ctx context.Context, user models.User) erro
 	}
 
 	return nil
+}
+
+func (r *usersRepository) ListUsersByDepartmentID(ctx context.Context, depTitle string) ([]*models.User, error) {
+	query := `
+	SELECT u.* FROM users u
+	JOIN departments d ON d.id = u.department AND d.title = $1;
+	`
+	var users []*models.User
+
+	err := r.db.SelectContext(ctx, &users, query, depTitle)
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
