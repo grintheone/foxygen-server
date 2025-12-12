@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/grintheone/foxygen-server/internal/middlewares"
 	"github.com/grintheone/foxygen-server/internal/models"
 	"github.com/grintheone/foxygen-server/internal/services"
 )
@@ -13,10 +15,31 @@ type UserHandler struct {
 	userService *services.UserService
 }
 
-func (h *UserHandler) ListUsersByDepartmentID(w http.ResponseWriter, r *http.Request) {
-	depTitle := chi.URLParam(r, "title")
+func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	uuidStr := chi.URLParam(r, "userID")
 
-	users, err := h.userService.ListUsersByDepartmentID(r.Context(), depTitle)
+	uuid, err := uuid.Parse(uuidStr)
+	if err != nil {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	profile, err := h.userService.GetUserProfile(r.Context(), uuid)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, profile)
+}
+
+func (h *UserHandler) ListDepartmentUsers(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middlewares.GetUserIDFromContext(r.Context())
+	if !ok {
+		serverError(w, fmt.Errorf("No user ID is present in context"))
+	}
+
+	users, err := h.userService.ListDepartmentUsers(r.Context(), userID)
 	if err != nil {
 		serverError(w, err)
 		return

@@ -17,6 +17,15 @@ func NewUserService(ur repository.UsersRepository) *UserService {
 	return &UserService{userRepo: ur}
 }
 
+func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*models.UserProfile, error) {
+	profile, err := s.userRepo.GetProfile(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("service error fetching user profile: %w", err)
+	}
+
+	return profile, nil
+}
+
 func (s *UserService) GetUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	user, err := s.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
@@ -55,8 +64,8 @@ func (s *UserService) UpdateUser(ctx context.Context, user models.User) error {
 	return nil
 }
 
-func (s *UserService) ListUsersByDepartmentID(ctx context.Context, depTitle string) ([]*models.User, error) {
-	users, err := s.userRepo.ListUsersByDepartmentID(ctx, depTitle)
+func (s *UserService) ListDepartmentUsers(ctx context.Context, userID string) ([]*models.User, error) {
+	users, err := s.userRepo.ListDepartmentUsers(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("service error retrieving the list of users: %w", err)
 	}

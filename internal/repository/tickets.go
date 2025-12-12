@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
@@ -12,10 +13,11 @@ import (
 
 type TicketsRepository interface {
 	ListAllTickets(ctx context.Context, executorID string) ([]*models.TicketCard, error)
+	ListAllDepartmentTickets(ctx context.Context, currentUserID string) ([]*models.TicketCard, error)
 	GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.TicketSinglePage, error)
 	DeleteTicketByID(ctx context.Context, uuid uuid.UUID) error
 	CreateNewTicket(ctx context.Context, payload models.RawTicket) (*models.RawTicket, error)
-	UpdateTicketInfo(ctx context.Context, uuid uuid.UUID, payload models.TicketUpdates) (*models.TicketSinglePage, error)
+	UpdateTicketInfo(ctx context.Context, payload models.TicketUpdates, userID string) error
 	GetReasonInfoByID(ctx context.Context, id string) (*models.TicketReason, error)
 	GetTicketContactPerson(ctx context.Context, uuid uuid.UUID) (*models.Contact, error)
 	// GetClientTicketIDs(ctx context.Context, clientUUID uuid.UUID) ([]*uuid.UUID, error)
@@ -35,11 +37,12 @@ func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID strin
 	SELECT
     t.id,
     t.number,
-    t.deadline,
+    t.assigned_interval,
     t.urgent,
     t.status,
     t.workstarted_at,
     t.workfinished_at,
+  	t.description,
     TRIM(CONCAT(ex.first_name, ' ', ex.last_name)) as executor,
     dep.title as department,
     -- Device fields as individual columns
@@ -53,19 +56,19 @@ func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID strin
     tr.title as reason
 	FROM tickets t
 	LEFT JOIN devices d ON t.device = d.id
-	LEFT JOIN classificator c ON d.classificator = c.id
+	LEFT JOIN classificators c ON d.classificator = c.id
 	LEFT JOIN clients cl ON t.client = cl.id
 	LEFT JOIN ticket_reasons tr on t.reason = tr.id
 	LEFT JOIN users ex ON t.executor = ex.user_id
 	LEFT JOIN departments dep ON t.department = dep.id
 	WHERE executor = $1
 	ORDER BY
-	CASE
-        WHEN deadline::TIMESTAMP < NOW() THEN 0  -- Overdue first
+		CASE
+        WHEN (t.assigned_interval->>'end')::TIMESTAMP < NOW() THEN 0  -- Overdue first
         WHEN urgent = TRUE THEN 1    -- Then urgent
         ELSE 2                                   -- Then everything else
     END,
-    deadline::TIMESTAMP ASC;  -- Sort by deadline within each group
+    (t.assigned_interval->>'end')::TIMESTAMP ASC;
 	`
 	// query := "SELECT * FROM tickets WHERE executor = $1"
 	var tickets []*models.TicketCard
@@ -78,8 +81,62 @@ func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID strin
 	return tickets, nil
 }
 
+func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, currentUserID string) ([]*models.TicketCard, error) {
+	query := `SELECT department FROM users WHERE user_id = $1`
+
+	var department uuid.UUID
+
+	err := r.db.GetContext(ctx, &department, query, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(department, "department ID")
+
+	query = `
+	SELECT
+    t.id,
+    t.number,
+    t.assigned_interval,
+    t.urgent,
+    t.status,
+    t.workstarted_at,
+    t.workfinished_at,
+  	t.description,
+    TRIM(CONCAT(ex.first_name, ' ', ex.last_name)) as executor,
+    dep.title as department,
+    d.serial_number AS device_serial_number,
+    c.title AS device_classificator_title,
+    cl.title as client_name,
+    cl.address as client_address,
+    tr.title as reason
+	FROM tickets t
+	LEFT JOIN devices d ON t.device = d.id
+	LEFT JOIN classificators c ON d.classificator = c.id
+	LEFT JOIN clients cl ON t.client = cl.id
+	LEFT JOIN ticket_reasons tr on t.reason = tr.id
+	LEFT JOIN users ex ON t.executor = ex.user_id
+	LEFT JOIN departments dep ON t.department = dep.id
+	WHERE t.department = $1
+	ORDER BY
+		CASE
+        WHEN (t.assigned_interval->>'end')::TIMESTAMP < NOW() THEN 0  -- Overdue first
+        WHEN urgent = TRUE THEN 1    -- Then urgent
+        ELSE 2                                   -- Then everything else
+    END,
+    (t.assigned_interval->>'end')::TIMESTAMP ASC;
+	`
+	var tickets []*models.TicketCard
+
+	err = r.db.SelectContext(ctx, &tickets, query, department)
+	if err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
+}
+
 func (r *ticketsRepository) GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.TicketSinglePage, error) {
-	// query := `SELECT * FROM tickets WHERE id = $1`
 	query := `
 		SELECT
 			-- Ticket fields
@@ -90,13 +147,14 @@ func (r *ticketsRepository) GetTicketByID(ctx context.Context, uuid uuid.UUID) (
 			t.workstarted_at,
 			t.workfinished_at,
 			t.closed_at,
-			t.deadline,
+			t.assigned_interval,
 			t.urgent,
 			t.status,
 			t.result,
 			t.used_materials,
 			t.recommendation,
-			TRIM(CONCAT(ex.first_name, ' ', ex.last_name)) as executor,
+			t.executor,
+			TRIM(CONCAT(ex.first_name, ' ', ex.last_name)) as executorName,
 			t.ticket_type,
 			t.author,
 			dep.title as department,
@@ -175,44 +233,112 @@ func (r *ticketsRepository) CreateNewTicket(ctx context.Context, payload models.
 	return &ticket, nil
 }
 
-func (r *ticketsRepository) UpdateTicketInfo(ctx context.Context, uuid uuid.UUID, updates models.TicketUpdates) (*models.TicketSinglePage, error) {
-	existing, err := r.GetTicketByID(ctx, uuid)
+func (r *ticketsRepository) UpdateTicketInfo(ctx context.Context, updates models.TicketUpdates, userID string) error {
+	// Start transaction
+	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	var exists bool
+	err = tx.GetContext(ctx, &exists, "SELECT EXISTS(SELECT 1 FROM tickets WHERE id = $1)", updates.ID)
+	if err != nil {
+		return fmt.Errorf("failed to check ticket existence: %w", err)
 	}
 
+	if !exists {
+		return fmt.Errorf("ticket was not found, updating not possible")
+	}
+
+	query := "UPDATE tickets SET "
+	var setClauses []string
+	args := make(map[string]any)
+	args["id"] = updates.ID
+
+	// Check each field and add to query if not nil
+	if updates.Status != nil {
+		setClauses = append(setClauses, "status = :status")
+		args["status"] = updates.Status
+	}
 	if updates.WorkStartedAt != nil {
-		existing.WorkStartedAt = updates.WorkStartedAt
+		setClauses = append(setClauses, "workstarted_at = :workstarted_at")
+		args["workstarted_at"] = updates.WorkStartedAt
 	}
 	if updates.WorkFinishedAt != nil {
-		existing.WorkFinishedAt = updates.WorkFinishedAt
-	}
-	if updates.Status != nil {
-		existing.Status = *updates.Status
+		setClauses = append(setClauses, "workfinished_at = :workfinished_at")
+		args["workfinished_at"] = updates.WorkFinishedAt
 	}
 	if updates.Result != nil {
-		existing.Result = updates.Result
+		setClauses = append(setClauses, "result = :result")
+		args["result"] = updates.Result
 	}
 	if updates.Recommendation != nil {
-		existing.Recommendation = updates.Recommendation
+		setClauses = append(setClauses, "recommendation = :recommendation")
+		args["recommendation"] = updates.Recommendation
 	}
 	if updates.ClosedAt != nil {
-		existing.ClosedAt = updates.ClosedAt
+		setClauses = append(setClauses, "closed_at = :closed_at")
+		args["closed_at"] = updates.ClosedAt
+	}
+	if updates.AssignedAt != nil {
+		setClauses = append(setClauses, "assigned_at = :assigned_at")
+		args["assigned_at"] = updates.AssignedAt
+	}
+	if updates.AssignedBy != nil {
+		setClauses = append(setClauses, "assigned_by = :assigned_by")
+		args["assigned_by"] = updates.AssignedBy
+	}
+	if updates.Executor != nil {
+		setClauses = append(setClauses, "executor = :executor")
+		args["executor"] = updates.Executor
+	}
+	if updates.Description != nil {
+		setClauses = append(setClauses, "description = :description")
+		args["description"] = updates.Description
+	}
+	if updates.AssignedInterval != nil {
+		setClauses = append(setClauses, "assigned_interval = :assigned_interval")
+		args["assigned_interval"] = updates.AssignedInterval
 	}
 
-	query := `
-		UPDATE tickets
-		SET number = :number, workstarted_at = :workstarted_at, workfinished_at = :workfinished_at, status = :status,
-		result = :result, recommendation = :recommendation, closed_at = :closed_at
-		WHERE id = :id
-	`
+	query += strings.Join(setClauses, ", ") + " WHERE id = :id"
 
-	_, err = r.db.NamedExecContext(ctx, query, &existing)
+	result, err := tx.NamedExecContext(ctx, query, args)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to update ticket: %w", err)
 	}
 
-	return existing, nil
+	// Verify ticket was updated
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected for ticket update: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no ticket found with ID %q", updates.ID)
+	}
+
+	query = `UPDATE users SET latest_ticket = $1 WHERE user_id = $2`
+	result, err = tx.ExecContext(ctx, query, updates.ID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update user's latest ticket: %w", err)
+	}
+
+	rowsAffected, err = result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected for user update: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no user found with ID %q", userID)
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (r *ticketsRepository) GetReasonInfoByID(ctx context.Context, id string) (*models.TicketReason, error) {
@@ -262,7 +388,7 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 	SELECT
     t.id,
     t.number,
-    t.deadline,
+    t.assigned_interval,
     t.urgent,
     t.status,
     t.result,
@@ -282,15 +408,17 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
     tr.title as reason
 	FROM tickets t
 	LEFT JOIN devices d ON t.device = d.id
-	LEFT JOIN classificator c ON d.classificator = c.id
+	LEFT JOIN classificators c ON d.classificator = c.id
 	LEFT JOIN clients cl ON t.client = cl.id
 	LEFT JOIN ticket_reasons tr on t.reason = tr.id
 	LEFT JOIN users ex ON t.executor = ex.user_id
-	LEFT JOIN departments dep ON t.department = dep.id
+	LEFT JOIN departments dep ON ex.department = dep.id
 	WHERE %s = $1
-		AND ($2 = 'closed' AND t.status = 'closed')
-  		OR ($2 = 'in-progress' AND t.status IN ('inWork', 'worksDone'))
-    	OR ($2 = 'all')
+			AND (
+				($2 = 'closed' AND t.status = 'closed')
+				OR ($2 = 'in-progress' AND t.status IN ('inWork', 'worksDone'))
+    			OR ($2 = 'all')
+			)
 	`, field)
 
 	args := []any{
@@ -301,10 +429,29 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 
 	if filters.Reason != nil {
 		query += fmt.Sprintf(" AND tr.id = $%d", argPos)
-        args = append(args, *filters.Reason)
-        argPos++
+		args = append(args, *filters.Reason)
+		argPos++
 	}
 
+	if filters.DateStart != nil {
+		query += fmt.Sprintf(" AND t.created_at >= $%d", argPos)
+		args = append(args, *filters.DateStart)
+		argPos++
+	}
+
+	if filters.DateEnd != nil {
+		query += fmt.Sprintf(" AND t.created_at <= $%d", argPos)
+		args = append(args, *filters.DateEnd)
+		argPos++
+	}
+
+	if filters.DeviceID != nil {
+		query += fmt.Sprintf(" AND t.device = $%d", argPos)
+		args = append(args, *filters.DeviceID)
+		argPos++
+	}
+
+	query += " ORDER BY created_at"
 	var tickets []*models.TicketCard
 
 	err := r.db.SelectContext(ctx, &tickets, query, args...)
@@ -320,7 +467,7 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 			AND ($2 = 'closed' AND t.status = 'closed')
   		OR ($2 = 'in-progress' AND t.status IN ('inWork', 'worksDone'))
     	OR ($2 = 'all')
-     	ORDER BY created_at ASC
+     	ORDER BY created_at DESC
 	`, field)
 
 	err = r.db.SelectContext(ctx, &filterDates, query, fieldUUID, filters.Status)
@@ -328,10 +475,11 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 		return nil, err
 	}
 
-	var reasons []struct{
+	var reasons []struct {
 		Reason string `db:"reason" json:"reason"`
-		Title string `db:"title" json:"title"`
+		Title  string `db:"title" json:"title"`
 	}
+
 	query = fmt.Sprintf(`
 		SELECT DISTINCT
 			t.reason,
@@ -350,6 +498,30 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 		return nil, err
 	}
 
+	var devices []struct {
+		ID          string `db:"id" json:"id"`
+		DeviceTitle string `db:"device_title" json:"device_title"`
+	}
+
+	query = fmt.Sprintf(`
+		SELECT DISTINCT
+			t.device as id,
+			cl.title as device_title
+		FROM
+		tickets t
+		LEFT JOIN devices d ON t.device = d.id
+		LEFT JOIN classificators cl ON d.classificator = cl.id
+		WHERE %s = $1
+			AND ($2 = 'closed' AND t.status = 'closed')
+  			OR ($2 = 'in-progress' AND t.status IN ('inWork', 'worksDone'))
+    		OR ($2 = 'all')
+	`, field)
+
+	err = r.db.SelectContext(ctx, &devices, query, fieldUUID, filters.Status)
+	if err != nil {
+		return nil, err
+	}
+
 	var response = models.TicketArchiveResponse{
 		Filters: make(map[string]any),
 	}
@@ -357,6 +529,10 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 	response.Tickets = tickets
 	response.Filters["availableDates"] = filterDates
 	response.Filters["reasons"] = reasons
+
+	if field == "client" {
+		response.Filters["devices"] = devices
+	}
 
 	return &response, nil
 }

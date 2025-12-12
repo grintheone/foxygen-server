@@ -17,13 +17,26 @@ func NewTicketService(r repository.TicketsRepository) *TicketService {
 	return &TicketService{repo: r}
 }
 
-func (s *TicketService) ListAllTickets(ctx context.Context, executorID string) ([]*models.TicketCard, error) {
-	tickets, err := s.repo.ListAllTickets(ctx, executorID)
-	if err != nil {
-		return nil, fmt.Errorf("service error getting all tickets: %w", err)
+func (s *TicketService) ListAllTickets(ctx context.Context, currentUserID string, role string) ([]*models.TicketCard, error) {
+	if role == "user" {
+		tickets, err := s.repo.ListAllTickets(ctx, currentUserID)
+		if err != nil {
+			return nil, fmt.Errorf("service error getting all tickets: %w", err)
+		}
+
+		return tickets, nil
 	}
 
-	return tickets, nil
+	if role == "coordinator" {
+		tickets, err := s.repo.ListAllDepartmentTickets(ctx, currentUserID)
+		if err != nil {
+			return nil, fmt.Errorf("service error getting all tickets: %w", err)
+		}
+
+		return tickets, nil
+	}
+
+	return nil, nil
 }
 
 func (s *TicketService) GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.TicketSinglePage, error) {
@@ -53,13 +66,13 @@ func (s *TicketService) CreateNewTicket(ctx context.Context, payload models.RawT
 	return created, nil
 }
 
-func (s *TicketService) UpdateTicketInfo(ctx context.Context, uuid uuid.UUID, payload models.TicketUpdates) (*models.TicketSinglePage, error) {
-	updated, err := s.repo.UpdateTicketInfo(ctx, uuid, payload)
+func (s *TicketService) UpdateTicketInfo(ctx context.Context, payload models.TicketUpdates, userID string) error {
+	err := s.repo.UpdateTicketInfo(ctx, payload, userID)
 	if err != nil {
-		return nil, fmt.Errorf("service error updating ticket info: %w", err)
+		return fmt.Errorf("service error updating ticket info: %w", err)
 	}
 
-	return updated, nil
+	return nil
 }
 
 func (s *TicketService) GetReasonInfoByID(ctx context.Context, id string) (*models.TicketReason, error) {
@@ -108,12 +121,12 @@ func groupTicketsByReason(tickets []*models.TicketCard) map[string][]*models.Tic
 
 func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) (*models.TicketArchiveResponseGrouped, error) {
 	response, err := s.repo.GetTicketsByField(ctx, field, fieldUUID, filters)
-	var groupedResponse models.TicketArchiveResponseGrouped
-	groupedResponse.Filters = response.Filters
-
 	if err != nil {
 		return nil, fmt.Errorf("service error getting client tickets: %w", err)
 	}
+
+	var groupedResponse models.TicketArchiveResponseGrouped
+	groupedResponse.Filters = response.Filters
 
 	if filters.GroupBy != nil && *filters.GroupBy == "month" {
 		grouped := groupTicketsByMonth(response.Tickets, filters.Status)

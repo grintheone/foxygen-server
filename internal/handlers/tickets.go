@@ -17,13 +17,19 @@ type TicketHandler struct {
 }
 
 func (h *TicketHandler) ListAllTickets(w http.ResponseWriter, r *http.Request) {
-	executorID, ok := middlewares.GetUserIDFromContext(r.Context())
+	role, ok := middlewares.GetUserRoleFromContext(r.Context())
 	if !ok {
 		serverError(w, fmt.Errorf("Unable to check for user role"))
 		return
 	}
 
-	tickets, err := h.ticketService.ListAllTickets(r.Context(), executorID)
+	executorID, ok := middlewares.GetUserIDFromContext(r.Context())
+	if !ok {
+		serverError(w, fmt.Errorf("Unable to check for user ID"))
+		return
+	}
+
+	tickets, err := h.ticketService.ListAllTickets(r.Context(), executorID, role)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -108,19 +114,25 @@ func (h *TicketHandler) UpdateTicketInfo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	userID, ok := middlewares.GetUserIDFromContext(r.Context())
+	if !ok {
+		serverError(w, fmt.Errorf("no user ID present in context"))
+	}
+
 	var updates models.TicketUpdates
+	updates.ID = uuid
 
 	if !decodeJSONBody(w, r, &updates) {
 		return
 	}
 
-	updated, err := h.ticketService.UpdateTicketInfo(r.Context(), uuid, updates)
+	err = h.ticketService.UpdateTicketInfo(r.Context(), updates, userID)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, updated)
+	writeJSON(w, http.StatusOK, uuidStr)
 }
 
 func (h *TicketHandler) GetReasonInfoByID(w http.ResponseWriter, r *http.Request) {
