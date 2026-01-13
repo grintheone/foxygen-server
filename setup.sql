@@ -19,7 +19,7 @@ DROP TABLE IF EXISTS departments CASCADE;
 DROP TABLE IF EXISTS agreements CASCADE;
 DROP TABLE IF EXISTS ra_options CASCADE;
 DROP TABLE IF EXISTS remote_access CASCADE;
-
+DROP TABLE IF EXISTS entities_list CASCADE; 
 
 -- Enable citext extension
 CREATE EXTENSION IF NOT EXISTS citext;
@@ -51,7 +51,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 -- END;
 -- $$ LANGUAGE plpgsql;
 
-BEGIN;
+BEGIN; 
 
 CREATE TABLE IF NOT EXISTS accounts (
     user_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -80,7 +80,8 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT,
     phone TEXT UNIQUE,
     user_pic UUID,
-    latest_ticket UUID DEFAULT NULL
+    latest_ticket UUID DEFAULT NULL,
+    canEditEntities BOOLEAN  
 );
 
 -- test123
@@ -114,11 +115,11 @@ INSERT INTO account_roles (user_id, role_id) VALUES
     ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 3);
 
 
-INSERT INTO users (user_id, first_name, last_name, department, email, phone, user_pic) VALUES
-    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'Админ', '', '1f62a255-ef3a-11e5-8d88-001a64d22812', 'test1@gmail.com', 79992141831, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
-    ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'Координатор', '', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test2@gmail.com', 79992141832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
-    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'Владимир', 'Инженер', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test3@gmail.com', 79992146832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e'),
-    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'Михаил', 'Инженер', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test4@gmail.com', 79992142732, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e');
+INSERT INTO users (user_id, first_name, last_name, department, email, phone, user_pic, canEditEntities) VALUES
+    ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'Админ', '', '1f62a255-ef3a-11e5-8d88-001a64d22812', 'test1@gmail.com', 79992141831, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e', true),
+    ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'Координатор', '', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test2@gmail.com', 79992141832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e', true),
+    ('73c97b16-09b1-416e-94ad-f8952be14a19', 'Владимир', 'Инженер', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test3@gmail.com', 79992146832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e', true),
+    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'Михаил', 'Инженер', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test4@gmail.com', 79992142732, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e', false);
 
 -- Regions
 CREATE TABLE IF NOT EXISTS regions (
@@ -237,8 +238,8 @@ CREATE TABLE IF NOT EXISTS clients (
     title VARCHAR(255) NOT NULL,
     region INT REFERENCES regions(id) ON DELETE SET NULL,
     address TEXT,
-    location JSONB DEFAULT '{"lat": 0, "lng": 0}',
-    laboratory_system UUID,
+    location JSONB DEFAULT '{"lat": 0, "lng": 0}', -- пока не релизовывать
+    laboratory_system UUID DEFAULT NULL, -- ссылка на конкретный лис (пока не реализововывать)
     manager UUID[] DEFAULT '{}'
 );
 
@@ -258,6 +259,21 @@ VALUES (
     'Беломорск, Меретсковая ул., 6',
     '{"lat": 55.7539, "lng": 37.6208}', -- JSONB location with coordinates
     'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', -- TODO: ADD Laboraroty reference
+    '{ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e}'
+);
+
+INSERT INTO clients (
+    title,
+    region,
+    address,
+    location,
+    manager
+)
+VALUES (
+    'Отделение СберБанка',
+    '77', -- Reference to Moscow region (must exist in regions table)
+    'Санкт-Петербург, Портовая ул., 89',
+    '{"lat": 55.7539, "lng": 37.6208}', -- JSONB location with coordinates
     '{ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e}'
 );
 
@@ -417,7 +433,7 @@ INSERT INTO ticket_reasons (id, title, past, present, future) VALUES
 
 CREATE TABLE IF NOT EXISTS tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    number TEXT,
+    number INT GENERATED ALWAYS AS IDENTITY,
     created_at timestamp DEFAULT (NOW() AT TIME ZONE 'UTC'),
     assigned_at timestamp DEFAULT NULL, 
     workstarted_at timestamp DEFAULT NULL,
@@ -438,21 +454,21 @@ CREATE TABLE IF NOT EXISTS tickets (
     status VARCHAR(128) REFERENCES ticket_statuses(type) ON DELETE SET NULL,
     result TEXT DEFAULT '',
     used_materials UUID[] DEFAULT '{}',
-    recommendation TEXT
+    reference_ticket UUID REFERENCES tickets(id) DEFAULT NULL
 );
 
-INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, urgent, department, created_at, assigned_interval, assigned_at) VALUES
-('1', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Контроль прохождения 9004 ', false, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-12-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-02T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
+INSERT INTO tickets (client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, urgent, department, created_at, assigned_interval, assigned_at) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Контроль прохождения 9004 ', false, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-12-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-02T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
 
-INSERT INTO tickets (number, created_at, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, department, assigned_interval, assigned_at) VALUES
-('2', '2025-08-18T11:24:42.072Z', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'assigned', 'Описание тикета', '1f62a256-ef3a-11e5-8d88-001a64d22812', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-09T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
+INSERT INTO tickets (created_at, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, department, assigned_interval, assigned_at) VALUES
+('2025-08-18T11:24:42.072Z', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'assigned', 'Описание тикета', '1f62a256-ef3a-11e5-8d88-001a64d22812', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-09T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
 
-INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, urgent, department, created_at, assigned_interval, assigned_at) VALUES
-('3', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddf432a3-b37f-4139-a523-2335f1a5b041', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', true, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-11-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-12T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
+INSERT INTO tickets (client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, urgent, department, created_at, assigned_interval, assigned_at) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddf432a3-b37f-4139-a523-2335f1a5b041', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', true, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-11-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-12T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
 
 -- One in created phase 
-INSERT INTO tickets (number, client, device, ticket_type, author, reason, contact_person, status, description, urgent, department, created_at, assigned_interval) VALUES
-('4', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddf432a3-b37f-4139-a523-2335f1a5b041', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e','diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'created', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', true, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-11-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-10T09:19:34.169Z"}');
+INSERT INTO tickets (client, device, ticket_type, author, reason, contact_person, status, description, urgent, department, created_at, assigned_interval) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddf432a3-b37f-4139-a523-2335f1a5b041', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e','diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'created', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', true, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-11-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-10T09:19:34.169Z"}');
 
 
 CREATE TABLE IF NOT EXISTS attachments (
@@ -507,5 +523,16 @@ INSERT INTO remote_access (device_id, parameter_id) VALUES
     ('2ecc4df8-cd7a-412d-9362-09b047a67c30', '95e0f8d9-b497-4d38-844d-10e5746f3aa1'),
     ('2ecc4df8-cd7a-412d-9362-09b047a67c30', '51dfb946-b0c9-4503-9fbe-96ea5329095f'),
     ('2ecc4df8-cd7a-412d-9362-09b047a67c30', 'fd23c3d9-2a55-45db-8f74-a1f7af9769b5');
+
+CREATE TABLE IF NOT EXISTS entities_list (
+    id SERIAL PRIMARY KEY,
+    title TEXT, 
+    table_name TEXT NOT NULL,
+    display_fields TEXT[] DEFAULT '{}'::TEXT[]
+);
+
+INSERT INTO entities_list (title, table_name) VALUES 
+    ('Приборы', 'devices'),
+    ('Клиенты', 'clients');
 
 COMMIT;

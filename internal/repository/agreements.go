@@ -10,7 +10,6 @@ import (
 )
 
 type AgreementRepo interface {
-	GetClientAgreements(ctx context.Context, clientID uuid.UUID) ([]*models.Agreement, error)
 	GetAgreementsByField(ctx context.Context, field string, uuid uuid.UUID) ([]*models.AgreementCard, error)
 }
 
@@ -20,18 +19,6 @@ type agreementRepo struct {
 
 func NewAgreementRepo(db *sqlx.DB) AgreementRepo {
 	return &agreementRepo{db}
-}
-
-func (r *agreementRepo) GetClientAgreements(ctx context.Context, clientID uuid.UUID) ([]*models.Agreement, error) {
-	query := `SELECT * FROM agreements WHERE actual_client = $1`
-	var agreements []*models.Agreement
-
-	err := r.db.SelectContext(ctx, &agreements, query, clientID)
-	if err != nil {
-		return nil, err
-	}
-
-	return agreements, nil
 }
 
 func (r *agreementRepo) GetAgreementsByField(ctx context.Context, field string, uuid uuid.UUID) ([]*models.AgreementCard, error) {
@@ -49,7 +36,6 @@ func (r *agreementRepo) GetAgreementsByField(ctx context.Context, field string, 
 		LEFT JOIN classificators cl ON d.classificator = cl.id
 		WHERE %s = $1
 	`, field)
-
 
 	err := r.db.SelectContext(ctx, &agreements, query, uuid)
 	if err != nil {
