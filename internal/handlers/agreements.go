@@ -13,12 +13,6 @@ type AgreementHandler struct {
 }
 
 func (h *AgreementHandler) GetAgreementsByField(w http.ResponseWriter, r *http.Request) {
-	field := chi.URLParam(r, "field")
-	if field == "" {
-		clientError(w, http.StatusBadRequest)
-		return
-	}
-
 	uuidStr := chi.URLParam(r, "uuid")
 	if uuidStr == "" {
 		clientError(w, http.StatusBadRequest)
@@ -31,7 +25,18 @@ func (h *AgreementHandler) GetAgreementsByField(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	agreements, err := h.service.GetAgreementsByField(r.Context(), field, uuid)
+	field := r.URL.Query().Get("field")
+	if field == "" {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+	active := r.URL.Query().Get("active")
+	if active == "" {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	agreements, err := h.service.GetAgreementsByField(r.Context(), uuid, field, active)
 	if err != nil {
 		serverError(w, err)
 		return

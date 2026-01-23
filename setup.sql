@@ -119,7 +119,7 @@ INSERT INTO users (user_id, first_name, last_name, department, email, phone, use
     ('ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', 'Админ', '', '1f62a255-ef3a-11e5-8d88-001a64d22812', 'test1@gmail.com', 79992141831, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e', true),
     ('84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'Координатор', '', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test2@gmail.com', 79992141832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e', true),
     ('73c97b16-09b1-416e-94ad-f8952be14a19', 'Владимир', 'Инженер', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test3@gmail.com', 79992146832, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e', true),
-    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'Михаил', 'Инженер', '1f62a256-ef3a-11e5-8d88-001a64d22812', 'test4@gmail.com', 79992142732, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e', false);
+    ('ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'Михаил', 'Инженер', '1f62a257-ef3a-11e5-8d88-001a64d22812', 'test4@gmail.com', 79992142732, 'ad1fa321-cad1-7bc5-b3e5-f4a3f23cf90e', false);
 
 -- Regions
 CREATE TABLE IF NOT EXISTS regions (
@@ -223,7 +223,7 @@ CREATE TABLE IF NOT EXISTS comments (
     author_id UUID NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
     reference_id UUID NOT NULL,
     text TEXT,
-    created_at timestamp
+    created_at timestamp DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
 
 -- Create the trigger
@@ -263,6 +263,7 @@ VALUES (
 );
 
 INSERT INTO clients (
+    id,
     title,
     region,
     address,
@@ -270,6 +271,7 @@ INSERT INTO clients (
     manager
 )
 VALUES (
+    'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', -- example UUID for client
     'Отделение СберБанка',
     '77', -- Reference to Moscow region (must exist in regions table)
     'Санкт-Петербург, Портовая ул., 89',
@@ -454,21 +456,22 @@ CREATE TABLE IF NOT EXISTS tickets (
     status VARCHAR(128) REFERENCES ticket_statuses(type) ON DELETE SET NULL,
     result TEXT DEFAULT '',
     used_materials UUID[] DEFAULT '{}',
-    reference_ticket UUID REFERENCES tickets(id) DEFAULT NULL
+    reference_ticket UUID REFERENCES tickets(id) DEFAULT NULL,
+    double_signed BOOLEAN DEFAULT FALSE
 );
 
 INSERT INTO tickets (client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, urgent, department, created_at, assigned_interval, assigned_at) VALUES
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Контроль прохождения 9004 ', false, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-12-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-02T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
 
 INSERT INTO tickets (created_at, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, department, assigned_interval, assigned_at) VALUES
-('2025-08-18T11:24:42.072Z', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'assigned', 'Описание тикета', '1f62a256-ef3a-11e5-8d88-001a64d22812', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-09T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
+('2025-08-18T11:24:42.072Z', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'installation', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'ccb5418b-ac05-4f2c-8bab-6e76a51f86d9', 'assigned', 'Описание тикета', '1f62a257-ef3a-11e5-8d88-001a64d22812', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-09T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
 
 INSERT INTO tickets (client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status, description, urgent, department, created_at, assigned_interval, assigned_at) VALUES
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddf432a3-b37f-4139-a523-2335f1a5b041', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e', '84d512de-df6a-4a0b-be28-a8e184bd1d6a', 'diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', '73c97b16-09b1-416e-94ad-f8952be14a19', 'assigned', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', true, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-11-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-12T09:19:34.169Z"}', '2025-11-11T09:19:34.169Z');
 
 -- One in created phase 
-INSERT INTO tickets (client, device, ticket_type, author, reason, contact_person, status, description, urgent, department, created_at, assigned_interval) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddf432a3-b37f-4139-a523-2335f1a5b041', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e','diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'created', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', true, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-11-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-10T09:19:34.169Z"}');
+INSERT INTO tickets (client, device, ticket_type, author, reason, contact_person, status, description, urgent, department, created_at, assigned_interval, executor) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddf432a3-b37f-4139-a523-2335f1a5b041', 'internal', 'ad9fa963-cad8-4bc3-b8e2-f4a4f70cf95e','diagnostic', '27b1c3f2-f196-4885-8d56-9169e9f71e52', 'created', 'Выдаёт ошибку холостой пробы, превышение предела RBC. При выполнении анализов не считает эритроциты.', true, '1f62a256-ef3a-11e5-8d88-001a64d22812', '2025-11-13T09:19:34.169Z', '{"start": "2025-10-15T09:19:34.169Z", "end": "2025-12-10T09:19:34.169Z"}', '84d512de-df6a-4a0b-be28-a8e184bd1d6a');
 
 
 CREATE TABLE IF NOT EXISTS attachments (
@@ -497,8 +500,10 @@ CREATE TABLE IF NOT EXISTS agreements (
 
 INSERT INTO agreements (id, actual_client, distributor, device, assigned_at, type) VALUES
     (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', NOW(), 'rent');
+INSERT INTO agreements (id, actual_client, distributor, device, assigned_at, type) VALUES
+    (gen_random_uuid(), 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '2ecc4df8-cd7a-412d-9362-09b047a67c30', NOW(), 'rent');
 INSERT INTO agreements (id, actual_client, distributor, assigned_at, type) VALUES
-    (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW(), 'bought');
+    (gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', NOW(), 'buy');
 
 
 CREATE TABLE IF NOT EXISTS ra_options (

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
@@ -29,7 +28,7 @@ func (r *commentsRepository) GetCommentsByReferenceID(ctx context.Context, uuid 
         SELECT *
         FROM comments
         WHERE reference_id = $1
-        ORDER BY created_at DESC
+        ORDER BY created_at ASC
     `
 	var comments []models.Comment
 	err := r.db.SelectContext(ctx, &comments, query, uuid)
@@ -42,14 +41,14 @@ func (r *commentsRepository) GetCommentsByReferenceID(ctx context.Context, uuid 
 
 func (r *commentsRepository) NewComment(ctx context.Context, payload models.Comment) (*models.Comment, error) {
 	query := `
-        INSERT INTO comments (author_id, reference_id, text, created_at)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO comments (author_id, reference_id, text)
+        VALUES ($1, $2, $3)
         RETURNING id, author_id, reference_id, text, created_at
     `
 
 	var comment models.Comment
 
-	err := r.db.GetContext(ctx, &comment, query, payload.AuthorID, payload.ReferenceID, payload.Text, time.Now())
+	err := r.db.GetContext(ctx, &comment, query, payload.AuthorID, payload.ReferenceID, payload.Text)
 	if err != nil {
 		return nil, err
 	}

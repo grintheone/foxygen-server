@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
@@ -17,7 +18,7 @@ func NewAgreementService(repo repository.AgreementRepo) *AgreementService {
 	return &AgreementService{repo}
 }
 
-func (s *AgreementService) GetAgreementsByField(ctx context.Context, field string, uuid uuid.UUID) ([]*models.AgreementCard, error) {
+func (s *AgreementService) GetAgreementsByField(ctx context.Context, uuid uuid.UUID, field string, active string) ([]*models.AgreementCard, error) {
 	allowedFields := map[string]bool{
 		"client":      true,
 		"device":      true,
@@ -32,7 +33,12 @@ func (s *AgreementService) GetAgreementsByField(ctx context.Context, field strin
 		field = "actual_client"
 	}
 
-	agreements, err := s.repo.GetAgreementsByField(ctx, field, uuid)
+	isActive, err := strconv.ParseBool(active)
+	if err != nil {
+		return nil, fmt.Errorf("active flag is not a boolean %w", err)
+	}
+
+	agreements, err := s.repo.GetAgreementsByField(ctx, field, uuid, isActive)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting client agreements: %w", err)
 	}

@@ -135,6 +135,44 @@ func (h *TicketHandler) UpdateTicketInfo(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, uuidStr)
 }
 
+func (h *TicketHandler) CloseTicket(w http.ResponseWriter, r *http.Request) {
+	var ticketInfo models.CloseTicket
+
+	if !decodeJSONBody(w, r, &ticketInfo) {
+		return
+	}
+
+	uuidStr, ok := middlewares.GetUserIDFromContext(r.Context())
+	if !ok {
+		serverError(w, fmt.Errorf("no user ID present in context"))
+	}
+
+	currentUserID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	err = h.ticketService.CloseTicket(r.Context(), ticketInfo, currentUserID)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	w.WriteHeader(200)
+}
+
+func (h *TicketHandler) GetTicketReasons(w http.ResponseWriter, r *http.Request) {
+	reasons, err := h.ticketService.GetTicketReasons(r.Context())
+
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, reasons)
+}
+
 func (h *TicketHandler) GetReasonInfoByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
@@ -192,6 +230,12 @@ func (h *TicketHandler) GetTicketsByField(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	userID, ok := middlewares.GetUserIDFromContext(r.Context())
+	if !ok {
+		serverError(w, fmt.Errorf("Unable to check for user ID"))
+		return
+	}
+
 	f := r.URL.Query().Get("filters")
 
 	var filters models.TicketFilters
@@ -201,7 +245,7 @@ func (h *TicketHandler) GetTicketsByField(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	tickets, err := h.ticketService.GetTicketsByField(r.Context(), field, fieldUUID, filters)
+	tickets, err := h.ticketService.GetTicketsByField(r.Context(), field, fieldUUID, filters, userID)
 	if err != nil {
 		serverError(w, err)
 		return

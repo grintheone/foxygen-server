@@ -57,7 +57,7 @@ func (s *TicketService) DeleteTicketByID(ctx context.Context, uuid uuid.UUID) er
 	return nil
 }
 
-func (s *TicketService) CreateNewTicket(ctx context.Context, payload models.RawTicket) (*models.RawTicket, error) {
+func (s *TicketService) CreateNewTicket(ctx context.Context, payload models.RawTicket) (*string, error) {
 	created, err := s.repo.CreateNewTicket(ctx, payload)
 	if err != nil {
 		return nil, fmt.Errorf("service error creating new ticket: %w", err)
@@ -66,10 +66,28 @@ func (s *TicketService) CreateNewTicket(ctx context.Context, payload models.RawT
 	return created, nil
 }
 
+func (s *TicketService) GetTicketReasons(ctx context.Context) ([]*models.TicketReason, error) {
+	reasons, err := s.repo.GetTicketReasons(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("service error getting ticket reasons: %w", err)
+	}
+
+	return reasons, nil
+}
+
 func (s *TicketService) UpdateTicketInfo(ctx context.Context, payload models.TicketUpdates, userID string) error {
 	err := s.repo.UpdateTicketInfo(ctx, payload, userID)
 	if err != nil {
 		return fmt.Errorf("service error updating ticket info: %w", err)
+	}
+
+	return nil
+}
+
+func (s *TicketService) CloseTicket(ctx context.Context, ticketInfo models.CloseTicket, currentUserID uuid.UUID) error {
+	err := s.repo.CloseTicket(ctx, ticketInfo, currentUserID)
+	if err != nil {
+		return fmt.Errorf("service error closing ticket: %w", err)
 	}
 
 	return nil
@@ -119,8 +137,8 @@ func groupTicketsByReason(tickets []*models.TicketCard) map[string][]*models.Tic
 	return grouped
 }
 
-func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) (*models.TicketArchiveResponseGrouped, error) {
-	response, err := s.repo.GetTicketsByField(ctx, field, fieldUUID, filters)
+func (s *TicketService) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters, userID string) (*models.TicketArchiveResponseGrouped, error) {
+	response, err := s.repo.GetTicketsByField(ctx, field, fieldUUID, filters, userID)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting client tickets: %w", err)
 	}

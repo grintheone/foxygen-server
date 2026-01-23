@@ -16,12 +16,14 @@ type TicketsRepository interface {
 	ListAllDepartmentTickets(ctx context.Context, currentUserID string) ([]*models.TicketCard, error)
 	GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.TicketSinglePage, error)
 	DeleteTicketByID(ctx context.Context, uuid uuid.UUID) error
-	CreateNewTicket(ctx context.Context, payload models.RawTicket) (*models.RawTicket, error)
+	CreateNewTicket(ctx context.Context, payload models.RawTicket) (*string, error)
+	CloseTicket(ctx context.Context, ticketInfo models.CloseTicket, currentUserID uuid.UUID) error
 	UpdateTicketInfo(ctx context.Context, payload models.TicketUpdates, userID string) error
+	GetTicketReasons(ctx context.Context) ([]*models.TicketReason, error)
 	GetReasonInfoByID(ctx context.Context, id string) (*models.TicketReason, error)
 	GetTicketContactPerson(ctx context.Context, uuid uuid.UUID) (*models.Contact, error)
 	// GetClientTicketIDs(ctx context.Context, clientUUID uuid.UUID) ([]*uuid.UUID, error)
-	GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) (*models.TicketArchiveResponse, error)
+	GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters, userID string) (*models.TicketArchiveResponse, error)
 }
 
 type ticketsRepository struct {
@@ -152,7 +154,6 @@ func (r *ticketsRepository) GetTicketByID(ctx context.Context, uuid uuid.UUID) (
 			t.status,
 			t.result,
 			t.used_materials,
-			t.recommendation,
 			t.executor,
 			TRIM(CONCAT(ex.first_name, ' ', ex.last_name)) as executorName,
 			t.ticket_type,
@@ -216,21 +217,99 @@ func (r *ticketsRepository) DeleteTicketByID(ctx context.Context, uuid uuid.UUID
 	return nil
 }
 
-func (r *ticketsRepository) CreateNewTicket(ctx context.Context, payload models.RawTicket) (*models.RawTicket, error) {
-	query := `
-		INSERT INTO tickets (number, client, device, ticket_type, author, assigned_by, reason, contact_person, executor, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING *
-	`
+func (r *ticketsRepository) CreateNewTicket(ctx context.Context, payload models.RawTicket) (*string, error) {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 
-	var ticket models.RawTicket
-
-	err := r.db.GetContext(ctx, &ticket, query, payload.Number, payload.Client, payload.Device, payload.TicketType, payload.Author, payload.AssignedBy, payload.Reason, payload.ContactPerson, payload.Executor, payload.Status)
+	var department uuid.UUID
+	err = tx.GetContext(ctx, &department, `SELECT department FROM users WHERE user_id = $1`, payload.Author)
 	if err != nil {
 		return nil, err
 	}
 
-	return &ticket, nil
+	payload.Department = department
+
+	query := `
+	INSERT INTO tickets (status, assigned_at, assigned_by, executor, description, assigned_interval, device, reason, client, ticket_type, author, urgent, department, contact_person) 
+	VALUES (:status, :assigned_at, :assigned_by, :executor, :description, :assigned_interval, :device, :reason, :client, :ticket_type, :author, :urgent, :department, :contact_person) 
+	RETURNING id
+	`
+
+	stmt, err := tx.PrepareNamedContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	var id string
+	err = stmt.Get(&id, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return &id, nil
+}
+
+func (r *ticketsRepository) CloseTicket(ctx context.Context, ticketInfo models.CloseTicket, currentUserID uuid.UUID) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := `UPDATE tickets SET status = 'closed', result = :result, closed_at = :closed_at, double_signed = :double_signed WHERE id = :id`
+
+	_, err = tx.NamedExecContext(ctx, query, ticketInfo)
+	if err != nil {
+		return err
+	}
+
+	if ticketInfo.Recommendation != nil && ticketInfo.Department != nil {
+		query := `SELECT * FROM tickets WHERE id = $1`
+		var rawTicket models.RawTicket
+
+		err := tx.GetContext(ctx, &rawTicket, query, ticketInfo.ID)
+		if err != nil {
+			return fmt.Errorf("select: %w", err)
+		}
+
+		var newTicket = models.RawTicket{
+			Status:          "created",
+			Description:     *ticketInfo.Recommendation,
+			Department:      *ticketInfo.Department,
+			TicketType:      rawTicket.TicketType,
+			Client:          rawTicket.Client,
+			Device:          rawTicket.Device,
+			Author:          currentUserID,
+			Reason:          rawTicket.Reason,
+			ContactPerson:   rawTicket.ContactPerson,
+			ReferenceTicket: ticketInfo.ID,
+		}
+
+		query = `
+		INSERT INTO tickets (status, description, department, ticket_type, client, device, author, reason, contact_person, reference_ticket) 
+		VALUES (:status, :description, :department, :ticket_type, :client, :device, :author, :reason, :contact_person, :reference_ticket)`
+
+		_, err = tx.NamedExecContext(ctx, query, newTicket)
+		if err != nil {
+			return fmt.Errorf("insert: %w", err)
+		}
+		fmt.Println("successfully created a new ticket")
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (r *ticketsRepository) UpdateTicketInfo(ctx context.Context, updates models.TicketUpdates, userID string) error {
@@ -272,10 +351,6 @@ func (r *ticketsRepository) UpdateTicketInfo(ctx context.Context, updates models
 	if updates.Result != nil {
 		setClauses = append(setClauses, "result = :result")
 		args["result"] = updates.Result
-	}
-	if updates.Recommendation != nil {
-		setClauses = append(setClauses, "recommendation = :recommendation")
-		args["recommendation"] = updates.Recommendation
 	}
 	if updates.ClosedAt != nil {
 		setClauses = append(setClauses, "closed_at = :closed_at")
@@ -341,6 +416,19 @@ func (r *ticketsRepository) UpdateTicketInfo(ctx context.Context, updates models
 	return nil
 }
 
+func (r *ticketsRepository) GetTicketReasons(ctx context.Context) ([]*models.TicketReason, error) {
+	query := `
+		SELECT id, title FROM ticket_reasons
+	`
+	var ticketReasons []*models.TicketReason
+	err := r.db.SelectContext(ctx, &ticketReasons, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return ticketReasons, nil
+}
+
 func (r *ticketsRepository) GetReasonInfoByID(ctx context.Context, id string) (*models.TicketReason, error) {
 	query := `SELECT * FROM ticket_reasons WHERE id = $1`
 
@@ -373,7 +461,7 @@ func (r *ticketsRepository) GetTicketContactPerson(ctx context.Context, uuid uui
 	return &contact, nil
 }
 
-func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters) (*models.TicketArchiveResponse, error) {
+func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string, fieldUUID uuid.UUID, filters models.TicketFilters, userID string) (*models.TicketArchiveResponse, error) {
 	allowedFields := map[string]bool{
 		"client":   true,
 		"device":   true,
@@ -382,6 +470,19 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 
 	if !allowedFields[field] {
 		return nil, fmt.Errorf("invalid filter field: %s", field)
+	}
+
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	var department string
+
+	err = tx.GetContext(ctx, &department, `SELECT department FROM users WHERE user_id = $1`, userID)
+	if err != nil {
+		return nil, err
 	}
 
 	query := fmt.Sprintf(`
@@ -419,13 +520,16 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 				OR ($2 = 'in-progress' AND t.status IN ('inWork', 'worksDone'))
     			OR ($2 = 'all')
 			)
+			AND t.department = $3
+			AND t.executor IS NOT NULL
 	`, field)
 
 	args := []any{
 		fieldUUID,
 		filters.Status,
+		department,
 	}
-	argPos := 3
+	argPos := 4
 
 	if filters.Reason != nil {
 		query += fmt.Sprintf(" AND tr.id = $%d", argPos)
@@ -454,23 +558,7 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 	query += " ORDER BY created_at"
 	var tickets []*models.TicketCard
 
-	err := r.db.SelectContext(ctx, &tickets, query, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	var filterDates []string
-	query = fmt.Sprintf(`
-		SELECT DISTINCT created_at FROM
-		tickets t
-		WHERE %s = $1
-			AND ($2 = 'closed' AND t.status = 'closed')
-  		OR ($2 = 'in-progress' AND t.status IN ('inWork', 'worksDone'))
-    	OR ($2 = 'all')
-     	ORDER BY created_at DESC
-	`, field)
-
-	err = r.db.SelectContext(ctx, &filterDates, query, fieldUUID, filters.Status)
+	err = tx.SelectContext(ctx, &tickets, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -493,7 +581,7 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
     		OR ($2 = 'all')
 	`, field)
 
-	err = r.db.SelectContext(ctx, &reasons, query, fieldUUID, filters.Status)
+	err = tx.SelectContext(ctx, &reasons, query, fieldUUID, filters.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -517,9 +605,14 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
     		OR ($2 = 'all')
 	`, field)
 
-	err = r.db.SelectContext(ctx, &devices, query, fieldUUID, filters.Status)
+	err = tx.SelectContext(ctx, &devices, query, fieldUUID, filters.Status)
 	if err != nil {
 		return nil, err
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	var response = models.TicketArchiveResponse{
@@ -527,7 +620,6 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 	}
 
 	response.Tickets = tickets
-	response.Filters["availableDates"] = filterDates
 	response.Filters["reasons"] = reasons
 
 	if field == "client" {

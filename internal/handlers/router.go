@@ -66,7 +66,7 @@ func NewRouter(
 
 		r.Route("/v1", func(r chi.Router) {
 			r.Route("/agreements", func(r chi.Router) {
-				r.Get("/{field}/{uuid}", agreementHandler.GetAgreementsByField)
+				r.Get("/{uuid}", agreementHandler.GetAgreementsByField)
 			})
 
 			r.Route("/departments", func(r chi.Router) {
@@ -129,6 +129,7 @@ func NewRouter(
 				r.Post("/", ticketHandler.CreateNewTicket)
 				r.Patch("/{uuid}", ticketHandler.UpdateTicketInfo)
 				r.Patch("/close/{uuid}", ticketHandler.CloseTicket)
+				r.Get("/reasons", ticketHandler.GetTicketReasons)
 				r.Get("/reason/{id}", ticketHandler.GetReasonInfoByID)
 				r.Get("/contact/{uuid}", ticketHandler.GetTicketContactPerson)
 				r.Get("/{field}/{uuid}", ticketHandler.GetTicketsByField)
