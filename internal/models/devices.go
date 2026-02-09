@@ -32,9 +32,9 @@ func (j JSONB) Value() (driver.Value, error) {
 type Device struct {
 	ID              uuid.UUID `json:"id" db:"id"`
 	Classificator   uuid.UUID `json:"classificator" db:"classificator"`
-	SerialNumber    string    `json:"serial_number" db:"serial_number"`
+	SerialNumber    string    `json:"serialNumber" db:"serial_number"`
 	Properties      JSONB     `json:"properties" db:"properties"`
-	ConntectedToLIS bool      `json:"connected_to_lis" db:"connected_to_lis"`
+	ConntectedToLIS bool      `json:"connectedToLis" db:"connected_to_lis"`
 	IsUsed          bool      `json:"is_used" db:"is_used"`
 }
 

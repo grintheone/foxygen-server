@@ -35,9 +35,10 @@ func (r *accountRepository) CreateAccountWithRoles(ctx context.Context, account 
 	// Defer a rollback in case anything fails. It's a no-op if the tx is committed.
 	defer tx.Rollback()
 
-	// Generate a new UUID for the user
-	newUserID := uuid.New()
-	account.UserID = newUserID
+	if account.UserID == uuid.Nil {
+		userID := uuid.New()
+		account.UserID = userID
+	}
 
 	// Set current account role
 	switch roleID {
@@ -50,25 +51,24 @@ func (r *accountRepository) CreateAccountWithRoles(ctx context.Context, account 
 	}
 
 	// Insert the new user into the 'accounts' table
-	query := `INSERT INTO accounts (user_id, username, database, password_hash) VALUES ($1, $2, $3, $4)`
-	_, err = tx.ExecContext(ctx, query, account.UserID, account.Username, account.Database, account.PasswordHash)
+	query := `INSERT INTO accounts (user_id, username, password_hash) VALUES ($1, $2, $3) ON CONFLICT (username) DO NOTHING`
+	result, err := tx.ExecContext(ctx, query, account.UserID, account.Username, account.PasswordHash)
 	if err != nil {
 		return nil, fmt.Errorf("could not insert account: %w", err)
 	}
 
-	// Insert the role associations into the 'account_roles' table
-	accRoleQuery := `INSERT INTO account_roles (user_id, role_id) VALUES ($1, $2)`
-	_, err = tx.ExecContext(ctx, accRoleQuery, account.UserID, roleID)
+	affected, err := result.RowsAffected()
 	if err != nil {
-		return nil, fmt.Errorf("could not assign roles to account: %w", err)
+		return nil, err
 	}
 
-	// Insert the base user when creating new account
-	newUserQuery := `INSERT INTO users (user_id, first_name, last_name, department, email, phone, user_pic) VALUES ($1, $2, $3, $4, $5, $6, $7)`
-
-	_, err = tx.ExecContext(ctx, newUserQuery, newUserID, nil, nil, nil, nil, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not create an app account for new user: %w", err)
+	if affected > 0 {
+		// Insert the role associations into the 'account_roles' table
+		accRoleQuery := `INSERT INTO account_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING`
+		_, err = tx.ExecContext(ctx, accRoleQuery, account.UserID, roleID)
+		if err != nil {
+			return nil, fmt.Errorf("could not assign roles to account: %w", err)
+		}
 	}
 
 	// If everything went well, commit the transaction
@@ -84,7 +84,6 @@ func (r *accountRepository) GetByUsername(ctx context.Context, username string) 
 	   	SELECT
 	        a.user_id,
 	        a.username,
-	        a.database,
 	        a.disabled,
 	        a.password_hash,
 	        r.name as role
@@ -114,7 +113,6 @@ func (r *accountRepository) GetByID(ctx context.Context, userID uuid.UUID) (*mod
 	   	SELECT
 	        a.user_id,
 	        a.username,
-	        a.database,
 	        a.disabled,
 	        a.password_hash,
 	        r.name as role

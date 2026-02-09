@@ -10,6 +10,7 @@ import (
 )
 
 type UsersRepository interface {
+	CreateUser(ctx context.Context, userData models.User) error
 	GetProfile(ctx context.Context, userID uuid.UUID) (*models.UserProfile, error)
 	ListDepartmentUsers(ctx context.Context, userID string) ([]*models.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error)
@@ -26,6 +27,17 @@ func NewUsersRepository(db *sqlx.DB) UsersRepository {
 	return &usersRepository{db}
 }
 
+func (r *usersRepository) CreateUser(ctx context.Context, userData models.User) error {
+	query := `INSERT INTO users (user_id, first_name, last_name, department, email, phone, logo) VALUES (:user_id, :first_name, :last_name, :department, :email, :phone, :logo) ON CONFLICT (user_id) DO NOTHING`
+
+	_, err := r.db.NamedExecContext(ctx, query, userData)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *usersRepository) GetProfile(ctx context.Context, userID uuid.UUID) (*models.UserProfile, error) {
 	query := `	
 				SELECT 
@@ -34,7 +46,7 @@ func (r *usersRepository) GetProfile(ctx context.Context, userID uuid.UUID) (*mo
         dep.title as department,
         u.email,
         u.phone,
-        u.user_pic,
+        u.logo,
         CASE 
             WHEN u.latest_ticket IS NULL THEN '{}'::jsonb
             ELSE jsonb_build_object(
@@ -138,7 +150,7 @@ func (r *usersRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (*m
   					dep.title as department_title,
             u.email,
             u.phone,
-            u.user_pic,
+            u.logo,
             CASE 
                 WHEN u.latest_ticket IS NULL THEN '{}'::jsonb
                 ELSE jsonb_build_object(
@@ -201,9 +213,9 @@ func (r *usersRepository) DeleteUser(ctx context.Context, userID uuid.UUID) erro
 }
 
 func (r *usersRepository) UpdateUser(ctx context.Context, user models.User) error {
-	query := `UPDATE users SET first_name = $1, last_name = $2, department = $3, email = $4, phone = $5, user_pic = $6 WHERE user_id = $7`
+	query := `UPDATE users SET first_name = $1, last_name = $2, department = $3, email = $4, phone = $5, logo = $6 WHERE user_id = $7`
 
-	_, err := r.db.ExecContext(ctx, query, user.FirstName, user.LastName, user.Department, user.Email, user.Phone, user.Userpic, user.UserID)
+	_, err := r.db.ExecContext(ctx, query, user.FirstName, user.LastName, user.Department, user.Email, user.Phone, user.Logo, user.UserID)
 	if err != nil {
 		return err
 	}
@@ -227,7 +239,7 @@ func (r *usersRepository) ListDepartmentUsers(ctx context.Context, userID string
             u.department,
             u.email,
             u.phone,
-            u.user_pic,
+            u.logo,
             case 
                 when u.latest_ticket is null then '{}'::jsonb
                 else jsonb_build_object(

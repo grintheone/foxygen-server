@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -14,11 +15,12 @@ import (
 )
 
 type App struct {
-	Router http.Handler
-	DB     *sqlx.DB
+	Router     http.Handler
+	DB         *sqlx.DB
+	ImportFile *string
 }
 
-func NewApp(cfg *config.Config) (*App, error) {
+func NewApp(cfg *config.Config, importFile *string) (*App, error) {
 	db, err := sqlx.Open("postgres", cfg.Database.ConnectionString())
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -73,6 +75,35 @@ func NewApp(cfg *config.Config) (*App, error) {
 	// Agreements
 	agreementRepo := repository.NewAgreementRepo(db)
 	agreementService := services.NewAgreementService(agreementRepo)
+
+	// Regions
+	regionsRepo := repository.NewRegionRepo(db)
+	// Researh Type
+	researchTypeRepo := repository.NewResearchTypeRepo(db)
+	// Manufacturer
+	manufacturerRepo := repository.NewManufacturerRepo(db)
+
+	importService := services.NewImportService(
+		*departmentService,
+		*userService,
+		*accountService,
+		*clientService,
+		*contactService,
+		*classificatorService,
+		*deviceService,
+		ticketRepo,
+		regionsRepo,
+		researchTypeRepo,
+		manufacturerRepo,
+	)
+	// Import data if flag is provided
+	if *importFile != "" {
+		log.Printf("Importing data from: %s", *importFile)
+		if err := importService.ImportFromFile(*importFile); err != nil {
+			log.Fatalf("Failed to import data: %v", err)
+		}
+		log.Println("Data import completed successfully")
+	}
 
 	r := handlers.NewRouter(
 		accountService,

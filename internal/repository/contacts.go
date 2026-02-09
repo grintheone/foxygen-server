@@ -10,7 +10,7 @@ import (
 
 type ContactsRepository interface {
 	GetAllByClientID(ctx context.Context, uuid uuid.UUID) (*[]models.Contact, error)
-	CreateContact(ctx context.Context, data models.Contact) (*models.Contact, error)
+	CreateContact(ctx context.Context, data models.Contact) error
 	DeleteContact(ctx context.Context, uuid uuid.UUID) error
 	GetContactByID(ctx context.Context, uuid uuid.UUID) (*models.Contact, error)
 	UpdateContact(ctx context.Context, uuid uuid.UUID, payload models.ContactUpdate) (*models.Contact, error)
@@ -52,21 +52,17 @@ func (r *contactRepository) GetContactByID(ctx context.Context, uuid uuid.UUID) 
 	return &contact, nil
 }
 
-func (r *contactRepository) CreateContact(ctx context.Context, data models.Contact) (*models.Contact, error) {
+func (r *contactRepository) CreateContact(ctx context.Context, data models.Contact) error {
 	query := `
-		INSERT INTO contacts (name, position, phone, email, client_id)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING *
+		INSERT INTO contacts (id, name, position, phone, email, client_id)
+		VALUES (:id, :name, :position, :phone, :email, :client_id)
 	`
-
-	var contact models.Contact
-
-	err := r.db.GetContext(ctx, &contact, query, data.Name, data.Position, data.Phone, data.Email, data.ClientID)
+	_, err := r.db.NamedExecContext(ctx, query, data)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &contact, nil
+	return nil
 }
 
 func (r *contactRepository) DeleteContact(ctx context.Context, uuid uuid.UUID) error {
@@ -93,7 +89,7 @@ func (r *contactRepository) UpdateContact(ctx context.Context, uuid uuid.UUID, p
 	}
 
 	if payload.Position != nil {
-		existing.Position = payload.Position
+		existing.Position = *payload.Position
 	}
 
 	if payload.Phone != nil {

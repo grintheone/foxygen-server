@@ -43,13 +43,13 @@ func (s *DeviceService) RemoveDeviceByID(ctx context.Context, uuid uuid.UUID) er
 	return nil
 }
 
-func (s *DeviceService) CreateNewDevice(ctx context.Context, payload models.Device) (*models.Device, error) {
-	created, err := s.repo.CreateNewDevice(ctx, payload)
+func (s *DeviceService) CreateNewDevice(ctx context.Context, payload models.Device) error {
+	err := s.repo.CreateNewDevice(ctx, payload)
 	if err != nil {
-		return nil, fmt.Errorf("service error creating device: %w", err)
+		return fmt.Errorf("service error creating device: %w", err)
 	}
 
-	return created, nil
+	return nil
 }
 
 func (s *DeviceService) UpdateDeviceByID(ctx context.Context, uuid uuid.UUID, payload models.DeviceUpdates) (*models.DeviceSinglePage, error) {

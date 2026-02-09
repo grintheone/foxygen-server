@@ -66,13 +66,13 @@ func (h *ClassificatorHandler) NewClassificator(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	created, err := h.classificatorService.NewClassificator(r.Context(), body)
+	err := h.classificatorService.NewClassificator(r.Context(), body)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, created)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *ClassificatorHandler) RemoveClassificatorByID(w http.ResponseWriter, r *http.Request) {

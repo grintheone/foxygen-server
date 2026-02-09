@@ -43,13 +43,13 @@ func (h *ContactHandler) CreateContact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contact, err := h.contactService.CreateContact(r.Context(), body)
+	err := h.contactService.CreateContact(r.Context(), body)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, contact)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *ContactHandler) DeleteContact(w http.ResponseWriter, r *http.Request) {

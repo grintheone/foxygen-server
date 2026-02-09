@@ -76,13 +76,13 @@ func (h *DeviceHandler) CreateNewDevice(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	device, err := h.deviceService.CreateNewDevice(r.Context(), body)
+	err := h.deviceService.CreateNewDevice(r.Context(), body)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, device)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *DeviceHandler) UpdateDeviceByID(w http.ResponseWriter, r *http.Request) {

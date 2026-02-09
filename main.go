@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -21,8 +22,12 @@ func init() {
 }
 
 func main() {
+	// Command line flags
+	importFile := flag.String("import", "", "JSON file to import on startup")
+	flag.Parse()
+
 	cfg := config.Load()
-	app, err := server.NewApp(cfg)
+	app, err := server.NewApp(cfg, importFile)
 	if err != nil {
 		log.Fatalf("Failed to initialize application: %v", err)
 	}

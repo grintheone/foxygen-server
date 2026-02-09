@@ -10,9 +10,9 @@ import (
 )
 
 type ClassificatorsRepository interface {
+	NewClassificator(ctx context.Context, payload models.Classificator) error
 	GetClassificatorByID(ctx context.Context, uuid uuid.UUID) (*models.Classificator, error)
 	GetDevicesByClassificatorID(ctx context.Context, uuid uuid.UUID) (*[]models.Device, error)
-	NewClassificator(ctx context.Context, payload models.Classificator) (*models.Classificator, error)
 	RemoveClassificatorByID(ctx context.Context, uuid uuid.UUID) error
 	UpdateClassificatorInfo(ctx context.Context, uuid uuid.UUID, payload models.ClassificatorUpdate) (*models.Classificator, error)
 }
@@ -53,21 +53,18 @@ func (r *classificatorRepository) GetDevicesByClassificatorID(ctx context.Contex
 	return &devices, nil
 }
 
-func (r *classificatorRepository) NewClassificator(ctx context.Context, payload models.Classificator) (*models.Classificator, error) {
+func (r *classificatorRepository) NewClassificator(ctx context.Context, payload models.Classificator) error {
 	query := `
-		INSERT INTO classificators (title, manufacturer, research_type, registration_certificate, maintenance_regulations, attachments, images)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING *
+		INSERT INTO classificators (id, title, manufacturer, research_type, registration_certificate, maintenance_regulations, attachments, images)
+    VALUES (:id, :title, :manufacturer, :research_type, :registration_certificate, :maintenance_regulations, :attachments, :images)
 	`
 
-	var created models.Classificator
-
-	err := r.db.GetContext(ctx, &created, query, payload.Title, payload.Manufacturer, payload.ResearchType, payload.RegistrationCertificate, payload.MaintenanceRegulations, payload.Attachments, payload.Images)
+	_, err := r.db.NamedExecContext(ctx, query, payload)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &created, nil
+	return nil
 }
 
 func (r *classificatorRepository) RemoveClassificatorByID(ctx context.Context, uuid uuid.UUID) error {
@@ -100,7 +97,7 @@ func (r *classificatorRepository) UpdateClassificatorInfo(ctx context.Context, u
 		existing.RegistrationCertificate = *payload.RegistrationCertificate
 	}
 	if payload.MaintenanceRegulations != nil {
-		existing.MaintenanceRegulations = *payload.MaintenanceRegulations
+		existing.MaintenanceRegulations = payload.MaintenanceRegulations
 	}
 	if payload.Attachments != nil {
 		existing.Attachments = *payload.Attachments

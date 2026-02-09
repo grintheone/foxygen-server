@@ -11,6 +11,7 @@ import (
 type DepartmentRepo interface {
 	ListAllDepartments(ctx context.Context) ([]*models.Department, error)
 	GetDepartmentByID(ctx context.Context, uuid uuid.UUID) (*models.Department, error)
+	AddNewDepartment(ctx context.Context, data models.Department) error
 }
 
 type departmentRepo struct {
@@ -41,4 +42,13 @@ func (r *departmentRepo) GetDepartmentByID(ctx context.Context, uuid uuid.UUID) 
 	}
 
 	return &department, nil
+}
+
+func (r *departmentRepo) AddNewDepartment(ctx context.Context, data models.Department) error {
+	_, err := r.db.NamedExecContext(ctx, `INSERT INTO departments (id, title) VALUES (:id, :title) ON CONFLICT (id) DO NOTHING`, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -26,13 +26,13 @@ func (s *ContactService) GetAllByClientID(ctx context.Context, uuid uuid.UUID) (
 	return contacts, nil
 }
 
-func (s *ContactService) CreateContact(ctx context.Context, payload models.Contact) (*models.Contact, error) {
-	createdContact, err := s.repo.CreateContact(ctx, payload)
+func (s *ContactService) CreateContact(ctx context.Context, payload models.Contact) error {
+	err := s.repo.CreateContact(ctx, payload)
 	if err != nil {
-		return nil, fmt.Errorf("service error creating new contact: %w", err)
+		return fmt.Errorf("service error creating new contact: %w", err)
 	}
 
-	return createdContact, nil
+	return nil
 }
 
 func (s *ContactService) DeleteContact(ctx context.Context, uuid uuid.UUID) error {

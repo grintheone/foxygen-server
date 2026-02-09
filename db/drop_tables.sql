@@ -1,0 +1,27 @@
+BEGIN;
+
+DROP TABLE IF EXISTS remote_access;
+DROP TABLE IF EXISTS ra_options;
+DROP TABLE IF EXISTS agreements;
+DROP TABLE IF EXISTS attachments;
+DROP TABLE IF EXISTS tickets;
+DROP TABLE IF EXISTS ticket_reasons;
+DROP TABLE IF EXISTS ticket_types;
+DROP TABLE IF EXISTS ticket_statuses;
+DROP TABLE IF EXISTS devices;
+DROP TABLE IF EXISTS classificators;
+DROP TABLE IF EXISTS manufacturers;
+DROP TABLE IF EXISTS research_type;
+DROP TABLE IF EXISTS contacts;
+DROP TABLE IF EXISTS clients;
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS regions;
+DROP TABLE IF EXISTS account_roles;
+DROP TABLE IF EXISTS roles;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS departments;
+DROP TABLE IF EXISTS accounts;
+
+DROP EXTENSION IF EXISTS citext;
+
+COMMIT;

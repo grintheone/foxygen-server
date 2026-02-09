@@ -11,7 +11,7 @@ import (
 
 type ClientsRepository interface {
 	ListClients(ctx context.Context) (*[]models.Client, error)
-	CreateClient(ctx context.Context, payload models.Client) (*models.Client, error)
+	CreateClient(ctx context.Context, payload models.Client) error
 	UpdateClient(ctx context.Context, uuid uuid.UUID, payload models.ClientUpdate) (*models.Client, error)
 	DeleteClient(ctx context.Context, uuid uuid.UUID) error
 	GetClientByID(ctx context.Context, uuid uuid.UUID) (*models.Client, error)
@@ -38,21 +38,18 @@ func (r *clientsRepository) ListClients(ctx context.Context) (*[]models.Client, 
 	return &clients, nil
 }
 
-func (r *clientsRepository) CreateClient(ctx context.Context, payload models.Client) (*models.Client, error) {
+func (r *clientsRepository) CreateClient(ctx context.Context, payload models.Client) error {
 	query := `
-        INSERT INTO clients (title, region, address, location, laboratory_system, manager)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *
+        INSERT INTO clients (id, title, region, address, laboratory_system, location, manager)
+    VALUES (:id, :title, :region, :address, :laboratory_system, :location, :manager)
     `
 
-	var client models.Client
-
-	err := r.db.GetContext(ctx, &client, query, payload.Title, payload.Region, payload.Address, payload.Location, payload.LaboratorySystem, payload.Manager)
+	_, err := r.db.NamedExecContext(ctx, query, payload)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &client, nil
+	return nil
 }
 
 func (r *clientsRepository) UpdateClient(ctx context.Context, uuid uuid.UUID, payload models.ClientUpdate) (*models.Client, error) {
@@ -67,19 +64,19 @@ func (r *clientsRepository) UpdateClient(ctx context.Context, uuid uuid.UUID, pa
 		existing.Title = *payload.Title
 	}
 	if payload.Region != nil {
-		existing.Region = *payload.Region
+		existing.Region = payload.Region
 	}
 	if payload.Address != nil {
 		existing.Address = *payload.Address
 	}
 	if payload.Location != nil {
-		existing.Location = *payload.Location
+		// existing.Location = *payload.Location
 	}
 	if payload.LaboratorySystem != nil {
-		existing.LaboratorySystem = *payload.LaboratorySystem
+		existing.LaboratorySystem = payload.LaboratorySystem
 	}
 	if payload.Manager != nil {
-		existing.Manager = *payload.Manager
+		// existing.Manager = *payload.Manager
 	}
 
 	query := `

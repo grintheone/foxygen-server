@@ -19,7 +19,7 @@ func NewAccountService(r repository.AccountRepository) *AccountService {
 	return &AccountService{repo: r}
 }
 
-func (s *AccountService) CreateUser(ctx context.Context, username, password, database string, role string) (*models.Account, error) {
+func (s *AccountService) CreateUser(ctx context.Context, username, password, role string, userID *uuid.UUID) (*models.Account, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -40,8 +40,11 @@ func (s *AccountService) CreateUser(ctx context.Context, username, password, dat
 
 	newAccount := &models.Account{
 		Username:     username,
-		Database:     database,
 		PasswordHash: string(hashedPassword),
+	}
+
+	if userID != nil {
+		newAccount.UserID = *userID
 	}
 
 	createdAccount, err := s.repo.CreateAccountWithRoles(ctx, newAccount, roleID)

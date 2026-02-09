@@ -17,6 +17,15 @@ func NewUserService(ur repository.UsersRepository) *UserService {
 	return &UserService{userRepo: ur}
 }
 
+func (s *UserService) CreateNewUser(ctx context.Context, userData models.User) error {
+	err := s.userRepo.CreateUser(ctx, userData)
+	if err != nil {
+		return fmt.Errorf("unable to create new user: %w", err)
+	}
+
+	return nil
+}
+
 func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*models.UserProfile, error) {
 	profile, err := s.userRepo.GetProfile(ctx, userID)
 	if err != nil {

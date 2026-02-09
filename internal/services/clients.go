@@ -25,13 +25,13 @@ func (s *ClientService) ListClients(ctx context.Context) (*[]models.Client, erro
 	return clients, nil
 }
 
-func (s *ClientService) CreateClient(ctx context.Context, payload models.Client) (*models.Client, error) {
-	client, err := s.repo.CreateClient(ctx, payload)
+func (s *ClientService) CreateClient(ctx context.Context, payload models.Client) error {
+	err := s.repo.CreateClient(ctx, payload)
 	if err != nil {
-		return nil, fmt.Errorf("service error creating a client: %w", err)
+		return fmt.Errorf("service error creating a client: %w", err)
 	}
 
-	return client, nil
+	return nil
 }
 
 func (s *ClientService) UpdateClient(ctx context.Context, uuid uuid.UUID, payload models.ClientUpdate) (*models.Client, error) {

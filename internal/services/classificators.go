@@ -35,13 +35,13 @@ func (s *ClassificatorService) GetDevicesByClassificatorID(ctx context.Context, 
 	return devices, nil
 }
 
-func (s *ClassificatorService) NewClassificator(ctx context.Context, payload models.Classificator) (*models.Classificator, error) {
-	created, err := s.repo.NewClassificator(ctx, payload)
+func (s *ClassificatorService) NewClassificator(ctx context.Context, payload models.Classificator) error {
+	err := s.repo.NewClassificator(ctx, payload)
 	if err != nil {
-		return nil, fmt.Errorf("service error creating new classificator: %w", err)
+		return fmt.Errorf("service error creating new classificator: %w", err)
 	}
 
-	return created, nil
+	return nil
 }
 
 func (s *ClassificatorService) RemoveClassificatorByID(ctx context.Context, uuid uuid.UUID) error {

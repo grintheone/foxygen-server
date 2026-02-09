@@ -1,11 +1,55 @@
 package models
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
+
+type FlexibleTime struct {
+	time.Time
+}
+
+type Interval struct {
+	Start *FlexibleTime `json:"start"`
+	End   *FlexibleTime `json:"end"`
+}
+
+func (ft *FlexibleTime) UnmarshalJSON(b []byte) error {
+	var v any
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+
+	switch value := v.(type) {
+	case float64:
+		// Unix timestamp in milliseconds
+		seconds := int64(value) / 1000
+		nanos := (int64(value) % 1000) * 1000000
+		t := time.Unix(seconds, nanos).UTC()
+
+		// Round to seconds (remove milliseconds)
+		ft.Time = t.Round(time.Second)
+
+	case string:
+		// Parse ISO 8601
+		t, err := time.Parse(time.RFC3339Nano, value)
+		if err != nil {
+			t, err = time.Parse("2006-01-02T15:04:05", value)
+			if err != nil {
+				return fmt.Errorf("invalid time format: %s", value)
+			}
+		}
+		ft.Time = t.UTC()
+	default:
+		return fmt.Errorf("invalid type for time: %T", value)
+	}
+
+	return nil
+}
 
 type TicketReason struct {
 	ID      string `json:"id" db:"id"`
@@ -16,26 +60,26 @@ type TicketReason struct {
 }
 
 type TicketSinglePage struct {
-	ID               uuid.UUID      `json:"id" db:"id"`
-	Number           string         `json:"number" db:"number"`
-	CreatedAt        time.Time      `json:"created_at" db:"created_at"`
-	AssignedAt       *time.Time     `json:"assigned_at" db:"assigned_at"`
-	WorkStartedAt    *time.Time     `json:"workstarted_at" db:"workstarted_at"`
-	WorkFinishedAt   *time.Time     `json:"workfinished_at" db:"workfinished_at"`
-	ClosedAt         *time.Time     `json:"closed_at" db:"closed_at"`
-	AssignedInterval JSONB          `json:"assigned_interval" db:"assigned_interval"`
-	Urgent           bool           `json:"urgent" db:"urgent"`
-	Executor         *string        `json:"executor" db:"executor"`
-	ExecutorName     string         `json:"executorName"`
-	Status           string         `json:"status" db:"status"`
-	Result           *string        `json:"result" db:"result"`
-	UsedMaterials    pq.StringArray `json:"used_materials" db:"used_materials"`
-	TicketType       string         `json:"ticket_type" db:"ticket_type"`
-	Author           uuid.UUID      `json:"author" db:"author"`
-	Department       string         `json:"department" db:"department"`
-	AssignedBy       string         `json:"assigned_by" db:"assigned_by"`
-	Reason           string         `json:"reason" db:"reason"`
-	Description      *string        `json:"description" db:"description"`
+	ID             uuid.UUID      `json:"id" db:"id"`
+	Number         string         `json:"number" db:"number"`
+	CreatedAt      time.Time      `json:"created_at" db:"created_at"`
+	AssignedAt     *time.Time     `json:"assigned_at" db:"assigned_at"`
+	WorkStartedAt  *time.Time     `json:"workstarted_at" db:"workstarted_at"`
+	WorkFinishedAt *time.Time     `json:"workfinished_at" db:"workfinished_at"`
+	ClosedAt       *time.Time     `json:"closed_at" db:"closed_at"`
+	AssignedEnd    *time.Time     `json:"assigned_end" db:"assigned_end"`
+	Urgent         bool           `json:"urgent" db:"urgent"`
+	Executor       *string        `json:"executor" db:"executor"`
+	ExecutorName   string         `json:"executorName"`
+	Status         string         `json:"status" db:"status"`
+	Result         *string        `json:"result" db:"result"`
+	UsedMaterials  pq.StringArray `json:"used_materials" db:"used_materials"`
+	TicketType     string         `json:"ticket_type" db:"ticket_type"`
+	Author         uuid.UUID      `json:"author" db:"author"`
+	Department     string         `json:"department" db:"department"`
+	AssignedBy     string         `json:"assigned_by" db:"assigned_by"`
+	Reason         string         `json:"reason" db:"reason"`
+	Description    *string        `json:"description" db:"description"`
 	// Client fields
 	ClientID      string  `json:"client_id" db:"client_id"`
 	ClientName    *string `json:"client_name" db:"client_name"`
@@ -45,52 +89,79 @@ type TicketSinglePage struct {
 	DeviceSerialNumber       *string `json:"device_serial_number" db:"device_serial_number"`
 	DeviceClassificatorTitle *string `json:"device_classificator_title" db:"device_classificator_title"`
 	// Contact
-	ContactPerson   uuid.UUID `json:"contact_person" db:"contact_person"`
-	ContactName     string    `json:"contact_name" db:"contact_name"`
-	ContactPosition string    `json:"contact_position" db:"contact_position"`
-	ContactPhone    string    `json:"contact_phone" db:"contact_phone"`
+	ContactPerson *Contact `json:"contact_person" db:"contact_person"`
 }
 
 type RawTicket struct {
-	ID               uuid.UUID      `json:"id" db:"id"`
-	Number           string         `json:"number" db:"number"`
-	CreatedAt        *time.Time     `json:"created_at,omitempty" db:"created_at"`
-	AssignedAt       *time.Time     `json:"assigned_at" db:"assigned_at"`
-	WorkStartedAt    *time.Time     `json:"workstarted_at" db:"workstarted_at"`
-	WorkFinishedAt   *time.Time     `json:"workfinished_at" db:"workfinished_at"`
-	ClosedAt         *time.Time     `json:"closed_at" db:"closed_at"`
-	AssignedInterval JSONB          `json:"assigned_interval" db:"assigned_interval"`
-	Urgent           bool           `json:"urgent" db:"urgent"`
-	Executor         uuid.UUID      `json:"executor" db:"executor"`
-	Status           string         `json:"status" db:"status"`
-	Result           *string        `json:"result" db:"result"`
-	UsedMaterials    pq.StringArray `json:"used_materials" db:"used_materials"`
-	Recommendation   *string        `json:"recommendation" db:"recommendation"`
-	TicketType       string         `json:"ticket_type" db:"ticket_type"`
-	Author           uuid.UUID      `json:"author" db:"author"`
-	Department       uuid.UUID      `json:"department" db:"department"`
-	AssignedBy       uuid.UUID      `json:"assigned_by" db:"assigned_by"`
-	Reason           string         `json:"reason" db:"reason"`
-	Description      string         `json:"description" db:"description"`
-	Client           uuid.UUID      `json:"client" db:"client"`
-	Device           uuid.UUID      `json:"device" db:"device"`
-	ContactPerson    *uuid.UUID     `json:"contact_person,omitempty" db:"contact_person,omitempty"`
-	ReferenceTicket  uuid.UUID      `json:"reference_ticket" db:"reference_ticket"`
+	ID              uuid.UUID      `json:"id" db:"id"`
+	Number          string         `json:"number" db:"number"`
+	CreatedAt       *time.Time     `json:"createdAt,omitempty" db:"created_at"`
+	AssignedAt      *time.Time     `json:"assignedAt" db:"assigned_at"`
+	WorkStartedAt   *time.Time     `json:"workstartedAt" db:"workstarted_at"`
+	WorkFinishedAt  *time.Time     `json:"workfinishedAt" db:"workfinished_at"`
+	ClosedAt        *time.Time     `json:"closedAt" db:"closed_at"`
+	PlannedStart    *time.Time     `json:"planned_start" db:"planned_start"`
+	PlannedEnd      *time.Time     `json:"planned_end" db:"planned_end"`
+	AssignedStart   *time.Time     `json:"assigned_start" db:"assigned_start"`
+	AssignedEnd     *time.Time     `json:"assigned_end" db:"assigned_end"`
+	Urgent          bool           `json:"urgent" db:"urgent"`
+	Executor        uuid.UUID      `json:"executor" db:"executor"`
+	Status          string         `json:"status" db:"status"`
+	Result          *string        `json:"result" db:"result"`
+	UsedMaterials   pq.StringArray `json:"usedMaterials" db:"used_materials"`
+	Recommendation  *string        `json:"recommendation" db:"recommendation"`
+	TicketType      string         `json:"ticketType" db:"ticket_type"`
+	Author          uuid.UUID      `json:"author" db:"author"`
+	Department      uuid.UUID      `json:"department" db:"department"`
+	AssignedBy      uuid.UUID      `json:"assignedBy" db:"assigned_by"`
+	Reason          string         `json:"reason" db:"reason"`
+	Description     string         `json:"description" db:"description"`
+	Client          uuid.UUID      `json:"client" db:"client"`
+	Device          uuid.UUID      `json:"device" db:"device"`
+	ContactPerson   *uuid.UUID     `json:"contactPerson" db:"contact_person"`
+	ReferenceTicket uuid.UUID      `json:"reference_ticket" db:"reference_ticket"`
 }
 
+// type RawTicket struct {
+// 	ID               uuid.UUID      `json:"id" db:"id"`
+// 	Number           string         `json:"number" db:"number"`
+// 	CreatedAt        *time.Time     `json:"created_at,omitempty" db:"created_at"`
+// 	AssignedAt       *time.Time     `json:"assigned_at" db:"assigned_at"`
+// 	WorkStartedAt    *time.Time     `json:"workstarted_at" db:"workstarted_at"`
+// 	WorkFinishedAt   *time.Time     `json:"workfinished_at" db:"workfinished_at"`
+// 	ClosedAt         *time.Time     `json:"closed_at" db:"closed_at"`
+// 	AssignedInterval JSONB          `json:"assigned_interval" db:"assigned_interval"`
+// 	Urgent           bool           `json:"urgent" db:"urgent"`
+// 	Executor         uuid.UUID      `json:"executor" db:"executor"`
+// 	Status           string         `json:"status" db:"status"`
+// 	Result           *string        `json:"result" db:"result"`
+// 	UsedMaterials    pq.StringArray `json:"used_materials" db:"used_materials"`
+// 	Recommendation   *string        `json:"recommendation" db:"recommendation"`
+// 	TicketType       string         `json:"ticket_type" db:"ticket_type"`
+// 	Author           uuid.UUID      `json:"author" db:"author"`
+// 	Department       uuid.UUID      `json:"department" db:"department"`
+// 	AssignedBy       uuid.UUID      `json:"assigned_by" db:"assigned_by"`
+// 	Reason           string         `json:"reason" db:"reason"`
+// 	Description      string         `json:"description" db:"description"`
+// 	Client           uuid.UUID      `json:"client" db:"client"`
+// 	Device           uuid.UUID      `json:"device" db:"device"`
+// 	ContactPerson    *uuid.UUID     `json:"contact_person,omitempty" db:"contact_person,omitempty"`
+// 	ReferenceTicket  uuid.UUID      `json:"reference_ticket" db:"reference_ticket"`
+// }
+
 type TicketCard struct {
-	ID               uuid.UUID  `json:"id" db:"id"`
-	Number           string     `json:"number" db:"number"`
-	AssignedInterval JSONB      `json:"assigned_interval" db:"assigned_interval"`
-	Urgent           bool       `json:"urgent" db:"urgent"`
-	Reason           string     `json:"reason" db:"reason"`
-	Status           string     `json:"status" db:"status"`
-	Result           *string    `json:"result" db:"result"`
-	Description      *string    `json:"description" db:"description"`
-	WorkStartedAt    *time.Time `json:"workstarted_at" db:"workstarted_at"`
-	WorkFinishedAt   *time.Time `json:"workfinished_at" db:"workfinished_at"`
-	Executor         string     `json:"executor" db:"executor"`
-	Department       string     `json:"department" db:"department"`
+	ID             uuid.UUID  `json:"id" db:"id"`
+	Number         string     `json:"number" db:"number"`
+	AssignedEnd    *time.Time `json:"assigned_end" db:"assigned_end"`
+	Urgent         bool       `json:"urgent" db:"urgent"`
+	Reason         string     `json:"reason" db:"reason"`
+	Status         string     `json:"status" db:"status"`
+	Result         *string    `json:"result" db:"result"`
+	Description    *string    `json:"description" db:"description"`
+	WorkStartedAt  *time.Time `json:"workstarted_at" db:"workstarted_at"`
+	WorkFinishedAt *time.Time `json:"workfinished_at" db:"workfinished_at"`
+	Executor       string     `json:"executor" db:"executor"`
+	Department     string     `json:"department" db:"department"`
 	// Device fields
 	DeviceSerialNumber       *string `json:"device_serial_number" db:"device_serial_number"`
 	DeviceClassificatorTitle *string `json:"device_classificator_title" db:"device_classificator_title"`

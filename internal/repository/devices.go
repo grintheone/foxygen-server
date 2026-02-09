@@ -13,7 +13,7 @@ type DevicesRepository interface {
 	GetAllDevices(ctx context.Context) (*[]models.Device, error)
 	GetDeviceByID(ctx context.Context, uuid uuid.UUID) (*models.DeviceSinglePage, error)
 	RemoveDeviceByID(ctx context.Context, uuid uuid.UUID) error
-	CreateNewDevice(ctx context.Context, payload models.Device) (*models.Device, error)
+	CreateNewDevice(ctx context.Context, payload models.Device) error
 	UpdateDeviceByID(ctx context.Context, uuid uuid.UUID, payload models.DeviceUpdates) (*models.DeviceSinglePage, error)
 	GetDeviceRemoteOptions(ctx context.Context, uuid uuid.UUID) ([]*models.DeviceRemoteOption, error)
 }
@@ -68,21 +68,18 @@ func (r *deviceRepository) RemoveDeviceByID(ctx context.Context, uuid uuid.UUID)
 	return nil
 }
 
-func (r *deviceRepository) CreateNewDevice(ctx context.Context, payload models.Device) (*models.Device, error) {
+func (r *deviceRepository) CreateNewDevice(ctx context.Context, payload models.Device) error {
 	query := `
-		INSERT INTO devices (classificator, serial_number, properties, connected_to_lis, is_used)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING *
+		INSERT INTO devices (id, classificator, serial_number, properties, connected_to_lis, is_used)
+	VALUES (:id, :classificator, :serial_number, :properties, :connected_to_lis, :is_used)
 	`
 
-	var device models.Device
-
-	err := r.db.GetContext(ctx, &device, query, payload.Classificator, payload.SerialNumber, payload.Properties, payload.ConntectedToLIS, payload.IsUsed)
+	_, err := r.db.NamedExecContext(ctx, query, payload)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &device, nil
+	return nil
 }
 
 func (r *deviceRepository) UpdateDeviceByID(ctx context.Context, uuid uuid.UUID, payload models.DeviceUpdates) (*models.DeviceSinglePage, error) {

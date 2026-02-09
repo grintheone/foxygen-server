@@ -30,8 +30,8 @@ func (h *AccountHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		request.Username,
 		request.Password,
-		request.Database,
 		request.Role,
+		nil,
 	)
 	if err != nil {
 		serverError(w, err)

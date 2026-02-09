@@ -17,6 +17,7 @@ type TicketsRepository interface {
 	GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.TicketSinglePage, error)
 	DeleteTicketByID(ctx context.Context, uuid uuid.UUID) error
 	CreateNewTicket(ctx context.Context, payload models.RawTicket) (*string, error)
+	CreateRawTicket(ticketData models.RawTicket) error
 	CloseTicket(ctx context.Context, ticketInfo models.CloseTicket, currentUserID uuid.UUID) error
 	UpdateTicketInfo(ctx context.Context, payload models.TicketUpdates, userID string) error
 	GetTicketReasons(ctx context.Context) ([]*models.TicketReason, error)
@@ -39,7 +40,7 @@ func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID strin
 	SELECT
     t.id,
     t.number,
-    t.assigned_interval,
+    t.assigned_end,
     t.urgent,
     t.status,
     t.workstarted_at,
@@ -66,11 +67,11 @@ func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID strin
 	WHERE executor = $1
 	ORDER BY
 		CASE
-        WHEN (t.assigned_interval->>'end')::TIMESTAMP < NOW() THEN 0  -- Overdue first
+        WHEN t.assigned_end::TIMESTAMP < NOW() THEN 0  -- Overdue first
         WHEN urgent = TRUE THEN 1    -- Then urgent
         ELSE 2                                   -- Then everything else
     END,
-    (t.assigned_interval->>'end')::TIMESTAMP ASC;
+    t.assigned_end::TIMESTAMP ASC;
 	`
 	// query := "SELECT * FROM tickets WHERE executor = $1"
 	var tickets []*models.TicketCard
@@ -99,7 +100,7 @@ func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, curren
 	SELECT
     t.id,
     t.number,
-    t.assigned_interval,
+    t.assigned_end,
     t.urgent,
     t.status,
     t.workstarted_at,
@@ -122,11 +123,11 @@ func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, curren
 	WHERE t.department = $1
 	ORDER BY
 		CASE
-        WHEN (t.assigned_interval->>'end')::TIMESTAMP < NOW() THEN 0  -- Overdue first
+        WHEN t.assigned_end::TIMESTAMP < NOW() THEN 0  -- Overdue first
         WHEN urgent = TRUE THEN 1    -- Then urgent
         ELSE 2                                   -- Then everything else
     END,
-    (t.assigned_interval->>'end')::TIMESTAMP ASC;
+    t.assigned_end::TIMESTAMP ASC;
 	`
 	var tickets []*models.TicketCard
 
@@ -149,7 +150,7 @@ func (r *ticketsRepository) GetTicketByID(ctx context.Context, uuid uuid.UUID) (
 			t.workstarted_at,
 			t.workfinished_at,
 			t.closed_at,
-			t.assigned_interval,
+			t.assigned_end,
 			t.urgent,
 			t.status,
 			t.result,
@@ -161,6 +162,17 @@ func (r *ticketsRepository) GetTicketByID(ctx context.Context, uuid uuid.UUID) (
 			dep.title as department,
 			TRIM(CONCAT(u.first_name, ' ', u.last_name)) as assigned_by,
 			t.description,
+			CASE 
+    			WHEN t.contact_person IS NOT NULL
+				THEN json_build_object(
+      				'id', con.id,
+      				'name', con.name,
+    				'position', con.position,
+    				'phone', con.phone,
+    				'email', con.email
+    			)
+    			ELSE NULL
+    		END AS contact_person,
 			CASE
         		WHEN t.status = 'created' THEN tr.future
           		WHEN t.status = 'assigned' THEN tr.future
@@ -175,11 +187,7 @@ func (r *ticketsRepository) GetTicketByID(ctx context.Context, uuid uuid.UUID) (
 			c.title as device_classificator_title,
 			cl.id as client_id,
 			cl.title as client_name,
-			cl.address as client_address,
-			con.id as contact_person,
-			con.position as contact_position,
-			con.name as contact_name,
-			con.phone as contact_phone
+			cl.address as client_address
 		FROM tickets t
 		LEFT JOIN devices d ON t.device = d.id
 		LEFT JOIN classificators c ON d.classificator = c.id
@@ -217,6 +225,20 @@ func (r *ticketsRepository) DeleteTicketByID(ctx context.Context, uuid uuid.UUID
 	return nil
 }
 
+func (r *ticketsRepository) CreateRawTicket(ticketData models.RawTicket) error {
+	query := `
+	INSERT INTO tickets (id, created_at, assigned_at, workstarted_at, workfinished_at, planned_start, planned_end, assigned_start, assigned_end, closed_at, executor, status, result, used_materials, ticket_type, author, department, assigned_by, reason, description, client, device, contact_person)
+	VALUES (:id, :created_at, :assigned_at, :workstarted_at, :workfinished_at, :planned_start, :planned_end, :assigned_start, :assigned_end, :closed_at, :executor, :status, :result, :used_materials, :ticket_type, :author, :department, :assigned_by, :reason, :description, :client, :device, :contact_person)
+	`
+	_, err := r.db.NamedExec(query, ticketData)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *ticketsRepository) CreateNewTicket(ctx context.Context, payload models.RawTicket) (*string, error) {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -233,8 +255,8 @@ func (r *ticketsRepository) CreateNewTicket(ctx context.Context, payload models.
 	payload.Department = department
 
 	query := `
-	INSERT INTO tickets (status, assigned_at, assigned_by, executor, description, assigned_interval, device, reason, client, ticket_type, author, urgent, department, contact_person) 
-	VALUES (:status, :assigned_at, :assigned_by, :executor, :description, :assigned_interval, :device, :reason, :client, :ticket_type, :author, :urgent, :department, :contact_person) 
+	INSERT INTO tickets (status, assigned_at, assigned_by, executor, description, planned_start, planned_end, assigned_start, assigned_end, device, reason, client, ticket_type, author, urgent, department, contact_person) 
+	VALUES (:status, :assigned_at, :assigned_by, :executor, :description, :planned_start, :planned_end, :assigned_start, :assigned_end, :device, :reason, :client, :ticket_type, :author, :urgent, :department, :contact_person) 
 	RETURNING id
 	`
 
@@ -372,10 +394,6 @@ func (r *ticketsRepository) UpdateTicketInfo(ctx context.Context, updates models
 		setClauses = append(setClauses, "description = :description")
 		args["description"] = updates.Description
 	}
-	if updates.AssignedInterval != nil {
-		setClauses = append(setClauses, "assigned_interval = :assigned_interval")
-		args["assigned_interval"] = updates.AssignedInterval
-	}
 
 	query += strings.Join(setClauses, ", ") + " WHERE id = :id"
 
@@ -489,7 +507,7 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 	SELECT
     t.id,
     t.number,
-    t.assigned_interval,
+    t.assigned_end,
     t.urgent,
     t.status,
     t.result,

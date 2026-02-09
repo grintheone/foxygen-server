@@ -39,3 +39,12 @@ func (s *DepartmentService) GetDepartmentByID(ctx context.Context, uuid uuid.UUI
 
 	return department, nil
 }
+
+func (s *DepartmentService) AddNewDepartment(ctx context.Context, data models.Department) error {
+	err := s.repo.AddNewDepartment(ctx, data)
+	if err != nil {
+		return fmt.Errorf("service error adding a new department: %w", err)
+	}
+
+	return nil
+}

@@ -30,13 +30,13 @@ func (h *ClientHandler) CreateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := h.clientService.CreateClient(r.Context(), payload)
+	err := h.clientService.CreateClient(r.Context(), payload)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, created)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *ClientHandler) UpdateClient(w http.ResponseWriter, r *http.Request) {

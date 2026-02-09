@@ -40,17 +40,30 @@ func (j *JSONBMap) Value() (driver.Value, error) {
 	return json.Marshal(j)
 }
 
+// type User struct {
+// 	UserID          uuid.UUID `json:"user_id" db:"user_id"`
+// 	FirstName       *string   `json:"first_name" db:"first_name"`
+// 	LastName        *string   `json:"last_name" db:"last_name"`
+// 	Department      uuid.UUID `json:"department" db:"department"`
+// 	DepartmentTitle string    `json:"department_title" db:"department_title"`
+// 	Email           *string   `json:"email" db:"email"`
+// 	Phone           *int      `json:"phone" db:"phone"`
+// 	Userpic         uuid.UUID `json:"user_pic" db:"user_pic"`
+// Properties      *JSONBMap `json:"properties" db:"properties"` // INSTEAD OF latest_ticket field from DB
+// ActiveTickets   *int      `json:"active_tickets" db:"active_tickets"`
+// }
+
 type User struct {
-	UserID          uuid.UUID `json:"user_id" db:"user_id"`
-	FirstName       *string   `json:"first_name" db:"first_name"`
-	LastName        *string   `json:"last_name" db:"last_name"`
-	Department      uuid.UUID `json:"department" db:"department"`
-	DepartmentTitle string    `json:"department_title" db:"department_title"`
-	Email           *string   `json:"email" db:"email"`
-	Phone           *int      `json:"phone" db:"phone"`
-	Userpic         uuid.UUID `json:"user_pic" db:"user_pic"`
-	Properties      *JSONBMap `json:"properties" db:"properties"` // INSTEAD OF latest_ticket field from DB
-	ActiveTickets   *int      `json:"active_tickets" db:"active_tickets"`
+	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
+	FirstName     string     `json:"firstName" db:"first_name"`
+	LastName      string     `json:"lastName" db:"last_name"`
+	Department    *uuid.UUID `json:"department" db:"department"`
+	Email         string     `json:"email" db:"email"`
+	Phone         string     `json:"phone" db:"phone"`
+	Logo          string     `json:"logo" db:"logo"`
+	Properties    *JSONBMap  `json:"properties" db:"properties"` // INSTEAD OF latest_ticket field from DB
+	ActiveTickets *int       `json:"active_tickets" db:"active_tickets"`
+	LatestTicket  *uuid.UUID `json:"latest_ticket" db:"latest_ticket"`
 }
 
 type UserProfile struct {
@@ -59,7 +72,7 @@ type UserProfile struct {
 	Department        string        `json:"department" db:"department"`
 	Email             *string       `json:"email" db:"email"`
 	Phone             *string       `json:"phone" db:"phone"`
-	Userpic           *uuid.UUID    `json:"user_pic" db:"user_pic"`
+	Logo              *uuid.UUID    `json:"logo" db:"logo"`
 	Properties        *JSONBMap     `json:"properties" db:"properties"`
 	ActiveTickets     []*TicketCard `json:"active_tickets" db:"active_tickets"`
 	ClosedTickets     *int          `json:"closed_tickets" db:"closed_tickets"`

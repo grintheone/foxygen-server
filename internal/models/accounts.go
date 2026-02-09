@@ -7,7 +7,6 @@ import (
 type Account struct {
 	UserID       uuid.UUID `json:"user_id" db:"user_id"`
 	Username     string    `json:"username" db:"username"`
-	Database     string    `json:"database" db:"database"`
 	Disabled     bool      `json:"disabled" db:"disabled"`
 	PasswordHash string    `json:"-" db:"password_hash"`
 	Role         string    `json:"role"` // This is for convenience when fetching a user with their roles
