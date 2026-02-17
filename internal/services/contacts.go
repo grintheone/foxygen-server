@@ -18,7 +18,7 @@ func NewContactService(r repository.ContactsRepository) *ContactService {
 	return &ContactService{repo: r}
 }
 
-func (s *ContactService) GetAllByClientID(ctx context.Context, uuid uuid.UUID) (*[]models.Contact, error) {
+func (s *ContactService) GetAllByClientID(ctx context.Context, uuid uuid.UUID) (*[]models.ContactRow, error) {
 	contacts, err := s.repo.GetAllByClientID(ctx, uuid)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting all contacts: %w", err)

@@ -9,7 +9,7 @@ import (
 )
 
 type ContactsRepository interface {
-	GetAllByClientID(ctx context.Context, uuid uuid.UUID) (*[]models.Contact, error)
+	GetAllByClientID(ctx context.Context, uuid uuid.UUID) (*[]models.ContactRow, error)
 	CreateContact(ctx context.Context, data models.Contact) error
 	DeleteContact(ctx context.Context, uuid uuid.UUID) error
 	GetContactByID(ctx context.Context, uuid uuid.UUID) (*models.Contact, error)
@@ -24,13 +24,13 @@ func NewContactRepository(db *sqlx.DB) *contactRepository {
 	return &contactRepository{db}
 }
 
-func (r *contactRepository) GetAllByClientID(ctx context.Context, uuid uuid.UUID) (*[]models.Contact, error) {
+func (r *contactRepository) GetAllByClientID(ctx context.Context, uuid uuid.UUID) (*[]models.ContactRow, error) {
 	query := `
 		SELECT id, name, position, phone, email
 		FROM contacts
 		WHERE client_id = $1
 	`
-	var contacts []models.Contact
+	var contacts []models.ContactRow
 	err := r.db.SelectContext(ctx, &contacts, query, uuid)
 	if err != nil {
 		return nil, err

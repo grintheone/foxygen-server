@@ -67,7 +67,7 @@ func (r *usersRepository) GetProfile(ctx context.Context, userID uuid.UUID) (*mo
             FROM tickets
             WHERE 
             executor = u.user_id
-            AND (assigned_interval->>'end')::timestamp < NOW()
+            AND assigned_end::timestamp < NOW()
             AND status NOT IN ('closed', 'cancelled')
         ) as overdue,
         (
@@ -98,7 +98,7 @@ func (r *usersRepository) GetProfile(ctx context.Context, userID uuid.UUID) (*mo
 	SELECT
     t.id,
     t.number,
-    t.assigned_interval,
+    t.assigned_end,
     t.urgent,
     t.status,
     t.workstarted_at,
@@ -121,11 +121,11 @@ func (r *usersRepository) GetProfile(ctx context.Context, userID uuid.UUID) (*mo
 	AND status NOT IN ('created', 'cancelled', 'closed')
 	ORDER BY
 		CASE
-        WHEN (t.assigned_interval->>'end')::TIMESTAMP < NOW() THEN 0  -- Overdue first
+        WHEN t.assigned_end::TIMESTAMP < NOW() THEN 0  -- Overdue first
         WHEN urgent = TRUE THEN 1    -- Then urgent
         ELSE 2                                   -- Then everything else
     END,
-    (t.assigned_interval->>'end')::TIMESTAMP ASC;
+    t.assigned_end::TIMESTAMP ASC;
 	`
 
 	var activeTickets []*models.TicketCard

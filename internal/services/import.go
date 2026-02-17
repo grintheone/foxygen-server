@@ -464,8 +464,6 @@ func (s *ImportService) processTicket(docBytes []byte) error {
 		return err
 	}
 
-	fmt.Printf("%#v", proxy.RawTicket)
-
 	parsedID, err := extractAndParseUUID(proxy.RawID)
 
 	if err != nil {

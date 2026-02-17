@@ -16,6 +16,15 @@ type Contact struct {
 	ClientID uuid.UUID `json:"client_id,omitempty" db:"client_id"`
 }
 
+type ContactRow struct {
+	ID       uuid.UUID `json:"id" db:"id"`
+	Name     string    `json:"name" db:"name"`
+	Position string    `json:"position" db:"position"`
+	Phone    string    `json:"phone" db:"phone"`
+	Email    string    `json:"email" db:"email"`
+	ClientID uuid.UUID `json:"client_id,omitempty" db:"client_id"`
+}
+
 // Scan implements the sql.Scanner interface
 func (c *Contact) Scan(value any) error {
 	if value == nil {

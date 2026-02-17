@@ -72,7 +72,7 @@ type UserProfile struct {
 	Department        string        `json:"department" db:"department"`
 	Email             *string       `json:"email" db:"email"`
 	Phone             *string       `json:"phone" db:"phone"`
-	Logo              *uuid.UUID    `json:"logo" db:"logo"`
+	Logo              *string       `json:"logo" db:"logo"`
 	Properties        *JSONBMap     `json:"properties" db:"properties"`
 	ActiveTickets     []*TicketCard `json:"active_tickets" db:"active_tickets"`
 	ClosedTickets     *int          `json:"closed_tickets" db:"closed_tickets"`
