@@ -78,6 +78,7 @@ type TicketSinglePage struct {
 	Author         uuid.UUID      `json:"author" db:"author"`
 	Department     string         `json:"department" db:"department"`
 	AssignedBy     string         `json:"assigned_by" db:"assigned_by"`
+	AssignedByID   uuid.UUID      `json:"assignedByID"`
 	Reason         string         `json:"reason" db:"reason"`
 	Description    *string        `json:"description" db:"description"`
 	// Client fields
@@ -120,6 +121,7 @@ type RawTicket struct {
 	Device          uuid.UUID      `json:"device" db:"device"`
 	ContactPerson   *uuid.UUID     `json:"contactPerson" db:"contact_person"`
 	ReferenceTicket uuid.UUID      `json:"reference_ticket" db:"reference_ticket"`
+	DoubleSigned    bool           `json:"double_signed" db:"double_signed"`
 }
 
 // type RawTicket struct {
@@ -161,7 +163,7 @@ type TicketCard struct {
 	WorkStartedAt  *time.Time `json:"workstarted_at" db:"workstarted_at"`
 	WorkFinishedAt *time.Time `json:"workfinished_at" db:"workfinished_at"`
 	Executor       string     `json:"executor" db:"executor"`
-	Department     string     `json:"department" db:"department"`
+	Department     *string    `json:"department" db:"department"`
 	// Device fields
 	DeviceSerialNumber       *string `json:"device_serial_number" db:"device_serial_number"`
 	DeviceClassificatorTitle *string `json:"device_classificator_title" db:"device_classificator_title"`

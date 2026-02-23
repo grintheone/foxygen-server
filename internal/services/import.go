@@ -26,6 +26,7 @@ type ImportService struct {
 	regionsRepo          repository.RegionsRepo
 	researchTypeRepo     repository.ResearchTypeRepo
 	manufacturerRepo     repository.ManufacturerRepo
+	agreementRepo        repository.AgreementRepo
 }
 
 func NewImportService(
@@ -40,6 +41,7 @@ func NewImportService(
 	regionsRepo repository.RegionsRepo,
 	researchTypeRepo repository.ResearchTypeRepo,
 	manufacturerRepo repository.ManufacturerRepo,
+	agreementRepo repository.AgreementRepo,
 ) *ImportService {
 	return &ImportService{
 		departmentService,
@@ -53,6 +55,7 @@ func NewImportService(
 		regionsRepo,
 		researchTypeRepo,
 		manufacturerRepo,
+		agreementRepo,
 	}
 }
 
@@ -200,6 +203,15 @@ func (s *ImportService) processRowsInOrder(rows []couchDBRow) {
 		processed++
 	}
 
+	for _, row := range devices {
+		if err := s.processAgreement(row.Doc); err != nil {
+			failed++
+			log.Printf("Failed to process row %s test: %v", row.ID, err)
+			continue
+		}
+		processed++
+	}
+
 	log.Printf("\nImport completed: %d processed, %d failed", processed, failed)
 }
 
@@ -239,7 +251,6 @@ func (s *ImportService) processDepartment(docBytes []byte) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}
@@ -261,7 +272,6 @@ func (s *ImportService) processUser(docBytes []byte, index int) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}
@@ -279,7 +289,6 @@ func (s *ImportService) processUser(docBytes []byte, index int) error {
 	}
 
 	account, err := s.accountService.CreateUser(context.Background(), fmt.Sprintf("%s_%d", "user", index), "test123", proxy.Roles[0], &parsedID)
-
 	if err != nil {
 		return err
 	}
@@ -300,7 +309,6 @@ func (s *ImportService) processRegion(docBytes []byte) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}
@@ -321,7 +329,6 @@ func (s *ImportService) processResearchType(docBytes []byte) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}
@@ -342,7 +349,6 @@ func (s *ImportService) processManufacturer(docBytes []byte) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}
@@ -363,7 +369,6 @@ func (s *ImportService) processClient(docBytes []byte) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}
@@ -386,7 +391,6 @@ func (s *ImportService) processContact(docBytes []byte) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}
@@ -415,7 +419,6 @@ func (s *ImportService) processClassificator(docBytes []byte) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}
@@ -439,7 +442,6 @@ func (s *ImportService) processDevice(docBytes []byte) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}
@@ -447,6 +449,43 @@ func (s *ImportService) processDevice(docBytes []byte) error {
 	proxy.Device.ID = parsedID
 
 	return s.deviceService.CreateNewDevice(context.Background(), proxy.Device)
+}
+
+func (s *ImportService) processAgreement(docBytes []byte) error {
+	type Binding struct {
+		Client uuid.UUID `json:"client"`
+	}
+
+	var proxy struct {
+		models.Device
+		RawID    string    `json:"_id"`
+		Bindings []Binding `json:"bindings"`
+	}
+	if err := json.Unmarshal(docBytes, &proxy); err != nil {
+		return err
+	}
+
+	parsedID, err := extractAndParseUUID(proxy.RawID)
+	if err != nil {
+		return err
+	}
+
+	if proxy.Bindings != nil {
+		for _, binding := range proxy.Bindings {
+			var agreement models.Agreement
+			agreement.Device = parsedID
+			agreement.ActualClient = binding.Client
+			b := true
+			agreement.IsActive = &b
+
+			err := s.agreementRepo.AddNewAgreement(context.Background(), agreement)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *ImportService) processTicket(docBytes []byte) error {
@@ -465,7 +504,6 @@ func (s *ImportService) processTicket(docBytes []byte) error {
 	}
 
 	parsedID, err := extractAndParseUUID(proxy.RawID)
-
 	if err != nil {
 		return err
 	}

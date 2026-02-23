@@ -161,8 +161,9 @@ func (r *ticketsRepository) GetTicketByID(ctx context.Context, uuid uuid.UUID) (
 			t.author,
 			dep.title as department,
 			TRIM(CONCAT(u.first_name, ' ', u.last_name)) as assigned_by,
+			t.assigned_by as assignedById,
 			t.description,
-			CASE 
+			CASE
     			WHEN t.contact_person IS NOT NULL
 				THEN json_build_object(
       				'id', con.id,
@@ -231,7 +232,6 @@ func (r *ticketsRepository) CreateRawTicket(ticketData models.RawTicket) error {
 	VALUES (:id, :created_at, :assigned_at, :workstarted_at, :workfinished_at, :planned_start, :planned_end, :assigned_start, :assigned_end, :closed_at, :executor, :status, :result, :used_materials, :ticket_type, :author, :department, :assigned_by, :reason, :description, :client, :device, :contact_person)
 	`
 	_, err := r.db.NamedExec(query, ticketData)
-
 	if err != nil {
 		return err
 	}
@@ -255,8 +255,8 @@ func (r *ticketsRepository) CreateNewTicket(ctx context.Context, payload models.
 	payload.Department = department
 
 	query := `
-	INSERT INTO tickets (status, assigned_at, assigned_by, executor, description, planned_start, planned_end, assigned_start, assigned_end, device, reason, client, ticket_type, author, urgent, department, contact_person) 
-	VALUES (:status, :assigned_at, :assigned_by, :executor, :description, :planned_start, :planned_end, :assigned_start, :assigned_end, :device, :reason, :client, :ticket_type, :author, :urgent, :department, :contact_person) 
+	INSERT INTO tickets (status, assigned_at, assigned_by, executor, description, planned_start, planned_end, assigned_start, assigned_end, device, reason, client, ticket_type, author, urgent, department, contact_person)
+	VALUES (:status, :assigned_at, :assigned_by, :executor, :description, :planned_start, :planned_end, :assigned_start, :assigned_end, :device, :reason, :client, :ticket_type, :author, :urgent, :department, :contact_person)
 	RETURNING id
 	`
 
@@ -302,7 +302,7 @@ func (r *ticketsRepository) CloseTicket(ctx context.Context, ticketInfo models.C
 			return fmt.Errorf("select: %w", err)
 		}
 
-		var newTicket = models.RawTicket{
+		newTicket := models.RawTicket{
 			Status:          "created",
 			Description:     *ticketInfo.Recommendation,
 			Department:      *ticketInfo.Department,
@@ -316,7 +316,7 @@ func (r *ticketsRepository) CloseTicket(ctx context.Context, ticketInfo models.C
 		}
 
 		query = `
-		INSERT INTO tickets (status, description, department, ticket_type, client, device, author, reason, contact_person, reference_ticket) 
+		INSERT INTO tickets (status, description, department, ticket_type, client, device, author, reason, contact_person, reference_ticket)
 		VALUES (:status, :description, :department, :ticket_type, :client, :device, :author, :reason, :contact_person, :reference_ticket)`
 
 		_, err = tx.NamedExecContext(ctx, query, newTicket)
@@ -633,7 +633,7 @@ func (r *ticketsRepository) GetTicketsByField(ctx context.Context, field string,
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	var response = models.TicketArchiveResponse{
+	response := models.TicketArchiveResponse{
 		Filters: make(map[string]any),
 	}
 

@@ -95,6 +95,7 @@ func NewApp(cfg *config.Config, importFile *string) (*App, error) {
 		regionsRepo,
 		researchTypeRepo,
 		manufacturerRepo,
+		agreementRepo,
 	)
 	// Import data if flag is provided
 	if *importFile != "" {

@@ -59,6 +59,7 @@ type User struct {
 	LastName      string     `json:"lastName" db:"last_name"`
 	Department    *uuid.UUID `json:"department" db:"department"`
 	Email         string     `json:"email" db:"email"`
+	DepartmentTitle string   `json:"department_title" db:"department_title"`
 	Phone         string     `json:"phone" db:"phone"`
 	Logo          string     `json:"logo" db:"logo"`
 	Properties    *JSONBMap  `json:"properties" db:"properties"` // INSTEAD OF latest_ticket field from DB

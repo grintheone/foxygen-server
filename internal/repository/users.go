@@ -39,15 +39,15 @@ func (r *usersRepository) CreateUser(ctx context.Context, userData models.User) 
 }
 
 func (r *usersRepository) GetProfile(ctx context.Context, userID uuid.UUID) (*models.UserProfile, error) {
-	query := `	
-				SELECT 
+	query := `
+				SELECT
         u.user_id,
   			CONCAT(u.first_name, ' ',  u.last_name) as fullname,
         dep.title as department,
         u.email,
         u.phone,
         u.logo,
-        CASE 
+        CASE
             WHEN u.latest_ticket IS NULL THEN '{}'::jsonb
             ELSE jsonb_build_object(
                 'status', t.status,
@@ -57,15 +57,15 @@ func (r *usersRepository) GetProfile(ctx context.Context, userID uuid.UUID) (*mo
             )
         END AS properties,
           (
-            SELECT COUNT(*) 
-            FROM tickets 
-            WHERE executor = u.user_id 
-            AND status = 'closed' 
+            SELECT COUNT(*)
+            FROM tickets
+            WHERE executor = u.user_id
+            AND status = 'closed'
         ) as closed_tickets,
         (
             SELECT COUNT(*) as overdue_tickets_count
             FROM tickets
-            WHERE 
+            WHERE
             executor = u.user_id
             AND assigned_end::timestamp < NOW()
             AND status NOT IN ('closed', 'cancelled')
@@ -73,15 +73,15 @@ func (r *usersRepository) GetProfile(ctx context.Context, userID uuid.UUID) (*mo
         (
             SELECT COUNT(*) as tickets_in_progress
             FROM tickets
-            WHERE executor = u.user_id 
+            WHERE executor = u.user_id
             AND status IN ('assigned', 'inWork', 'worksDone')
         )
-        FROM 
+        FROM
             users u
         LEFT JOIN tickets t on u.latest_ticket = t.id
         LEFT JOIN clients c on t.client = c.id
   			LEFT JOIN departments dep ON u.department = dep.id
-        WHERE 
+        WHERE
             u.user_id = $1
 	`
 
@@ -142,16 +142,16 @@ func (r *usersRepository) GetProfile(ctx context.Context, userID uuid.UUID) (*mo
 
 func (r *usersRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	query := `
-						SELECT 
+						SELECT
             u.user_id,
             u.first_name,
             u.last_name,
             u.department,
-  					dep.title as department_title,
+          		dep.title as department_title,
             u.email,
             u.phone,
             u.logo,
-            CASE 
+            CASE
                 WHEN u.latest_ticket IS NULL THEN '{}'::jsonb
                 ELSE jsonb_build_object(
                     'status', t.status,
@@ -161,17 +161,17 @@ func (r *usersRepository) GetUserByID(ctx context.Context, userID uuid.UUID) (*m
                 )
             END AS properties,
             (
-                SELECT COUNT(*) 
-                FROM tickets 
-                WHERE executor = u.user_id 
+                SELECT COUNT(*)
+                FROM tickets
+                WHERE executor = u.user_id
                 AND status not in ('closed', 'cancelled')
             ) as active_tickets
-        FROM 
+        FROM
             users u
         LEFT JOIN tickets t on u.latest_ticket = t.id
         LEFT JOIN clients c on t.client = c.id
   			LEFT JOIN departments dep ON u.department = dep.id
-        where 
+        where
             u.user_id = $1
 `
 
@@ -232,7 +232,7 @@ func (r *usersRepository) ListDepartmentUsers(ctx context.Context, userID string
 	}
 
 	query := `
-						SELECT 
+						SELECT
             u.user_id,
             u.first_name,
             u.last_name,
@@ -240,7 +240,7 @@ func (r *usersRepository) ListDepartmentUsers(ctx context.Context, userID string
             u.email,
             u.phone,
             u.logo,
-            case 
+            case
                 when u.latest_ticket is null then '{}'::jsonb
                 else jsonb_build_object(
                     'status', t.status,
@@ -250,16 +250,16 @@ func (r *usersRepository) ListDepartmentUsers(ctx context.Context, userID string
                 )
             end as properties,
             (
-                select count(*) 
-                from tickets 
-                where executor = u.user_id 
+                select count(*)
+                from tickets
+                where executor = u.user_id
                 and status not in ('closed', 'cancelled')
             ) as active_tickets
-        from 
+        from
             users u
         left join tickets t on u.latest_ticket = t.id
         left join clients c on t.client = c.id
-        where 
+        where
             u.department = $1
 	`
 	var users []*models.User

@@ -12,7 +12,7 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         u.user_id,
         u.first_name,
         u.last_name,
@@ -20,7 +20,7 @@ BEGIN
         u.email,
         u.phone,
         u.user_pic,
-        CASE 
+        CASE
             WHEN u.latest_ticket IS NULL THEN '{}'::jsonb
             ELSE jsonb_build_object(
                 'status', t.status,
@@ -30,15 +30,15 @@ BEGIN
             )
         END AS properties,
         (
-            SELECT COUNT(*) 
-            FROM tickets 
-            WHERE executor = u.user_id 
+            SELECT COUNT(*)
+            FROM tickets
+            WHERE executor = u.user_id
             AND status NOT IN ('closed', 'cancelled')
         ) AS active_tickets
-    FROM 
+    FROM
         users u
     LEFT JOIN tickets t ON u.latest_ticket = t.id
-    WHERE 
+    WHERE
         u.department = dept_id;
 END;
 $$ LANGUAGE plpgsql;
@@ -108,7 +108,7 @@ CREATE TABLE clients (
     title VARCHAR(255) NOT NULL,
     region UUID REFERENCES regions(id) ON DELETE SET NULL,
     address TEXT,
-    location JSONB DEFAULT NULL, 
+    location JSONB DEFAULT NULL,
     laboratory_system UUID DEFAULT NULL, -- ссылка на конкретный лис (пока не реализововывать)
     manager UUID[] DEFAULT '{}'
 );
@@ -147,7 +147,7 @@ CREATE TABLE classificators (
     images TEXT[] DEFAULT '{}'
 );
 
--- DONE 
+-- DONE
 CREATE TABLE devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     classificator UUID REFERENCES classificators(id) ON DELETE SET NULL,
@@ -157,7 +157,7 @@ CREATE TABLE devices (
     is_used BOOLEAN DEFAULT FALSE
 );
 
--- DONE 
+-- DONE
 CREATE TABLE ticket_statuses (
     type VARCHAR(128) PRIMARY KEY,
     title TEXT
@@ -182,7 +182,7 @@ CREATE TABLE tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     number INT GENERATED ALWAYS AS IDENTITY,
     created_at timestamp DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    assigned_at timestamp DEFAULT NULL, 
+    assigned_at timestamp DEFAULT NULL,
     workstarted_at timestamp DEFAULT NULL,
     workfinished_at timestamp DEFAULT NULL,
     planned_start timestamp DEFAULT NULL, -- manager field
@@ -219,13 +219,13 @@ CREATE TABLE attachments (
 );
 
 CREATE TABLE  agreements (
-    id UUID PRIMARY KEY,
-    number TEXT,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    number INT GENERATED ALWAYS AS IDENTITY,
     actual_client UUID REFERENCES clients(id) ON DELETE SET NULL,
     distributor UUID REFERENCES clients(id) ON DELETE SET NULL,
     device UUID REFERENCES devices(id) ON DELETE SET NULL,
-    assigned_at timestamp DEFAULT NULL,
-    finished_at timestamp DEFAULT NULL,
+    assigned_at timestamp,
+    finished_at timestamp,
     is_active BOOLEAN DEFAULT true,
     on_warranty BOOLEAN DEFAULT true,
     type VARCHAR(128)
