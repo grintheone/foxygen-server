@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 	"github.com/grintheone/foxygen-server/internal/services"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type App struct {
@@ -65,8 +68,28 @@ func NewApp(cfg *config.Config, importFile *string) (*App, error) {
 	ticketService := services.NewTicketService(ticketRepo)
 
 	// Attachments
+	minioClient, err := minio.New(cfg.Storage.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.Storage.AccessKey, cfg.Storage.SecretKey, ""),
+		Secure: cfg.Storage.UseSSL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize minio client: %w", err)
+	}
+
+	ctx := context.Background()
+	exists, err := minioClient.BucketExists(ctx, cfg.Storage.Bucket)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify minio bucket existence: %w", err)
+	}
+
+	if !exists {
+		if err := minioClient.MakeBucket(ctx, cfg.Storage.Bucket, minio.MakeBucketOptions{Region: cfg.Storage.Location}); err != nil {
+			return nil, fmt.Errorf("failed to create minio bucket: %w", err)
+		}
+	}
+
 	attachmentsRepo := repository.NewAttachmentRepository(db)
-	attachmentService := services.NewAttachmentService(attachmentsRepo)
+	attachmentService := services.NewAttachmentService(attachmentsRepo, minioClient, cfg.Storage.Bucket)
 
 	// Departments
 	departmentRepo := repository.NewDepartmentRepo(db)
@@ -96,6 +119,7 @@ func NewApp(cfg *config.Config, importFile *string) (*App, error) {
 		researchTypeRepo,
 		manufacturerRepo,
 		agreementRepo,
+		attachmentsRepo,
 	)
 	// Import data if flag is provided
 	if *importFile != "" {

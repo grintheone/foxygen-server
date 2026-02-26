@@ -1,9 +1,7 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -39,13 +37,7 @@ func NewRouter(
 	departmentHandler := &DepartmentHandler{departmentService}
 	agreementHandler := &AgreementHandler{agreementService}
 
-	// Create upload directory
-	uploadDir := "./attachments"
-	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
-		log.Fatal("Failed to create upload directory:", err)
-	}
-
-	attachmentHandler := &AttachmentHandler{attachmentService, uploadDir}
+	attachmentHandler := &AttachmentHandler{attachmentService: attachmentService}
 
 	// Global middleware (applied to all routes)
 	r.Use(middleware.Logger)    // Logs incoming requests

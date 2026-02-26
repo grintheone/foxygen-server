@@ -163,13 +163,19 @@ CREATE TABLE tickets (
     double_signed BOOLEAN DEFAULT FALSE
 );
 
+-- {
+--   "id": "9d737222-cf42-4139-a393-b85ed61152ff.jpg",
+--   "name": "IMG_20241129_140002.jpg",
+--   "mediaType": "image/jpeg",
+--   "imageType": "image",
+--   "ext": "jpg"
+-- },
+
 CREATE TABLE attachments (
-    id SERIAL PRIMARY KEY,
-    file_name TEXT NOT NULL,
-    original_name TEXT NOT NULL,
-    file_path TEXT NOT NULL,
-    file_size BIGINT NOT NULL,
-    mime_type VARCHAR(100) NOT NULL,
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    media_type TEXT NOT NULL,
+    ext TEXT NOT NULL,
     ref_id UUID NOT NULL
 );
 

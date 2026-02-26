@@ -27,6 +27,7 @@ type ImportService struct {
 	researchTypeRepo     repository.ResearchTypeRepo
 	manufacturerRepo     repository.ManufacturerRepo
 	agreementRepo        repository.AgreementRepo
+	attachmentRepo       repository.AttachmentRepository
 }
 
 func NewImportService(
@@ -42,6 +43,7 @@ func NewImportService(
 	researchTypeRepo repository.ResearchTypeRepo,
 	manufacturerRepo repository.ManufacturerRepo,
 	agreementRepo repository.AgreementRepo,
+	attachmentRepo repository.AttachmentRepository,
 ) *ImportService {
 	return &ImportService{
 		departmentService,
@@ -56,6 +58,7 @@ func NewImportService(
 		researchTypeRepo,
 		manufacturerRepo,
 		agreementRepo,
+		attachmentRepo,
 	}
 }
 
@@ -496,6 +499,7 @@ func (s *ImportService) processTicket(docBytes []byte) error {
 		PlannedInterval  models.Interval      `json:"plannedInterval"`
 		AssignedInterval models.Interval      `json:"assignedInterval"`
 		ActualInterval   models.Interval      `json:"actualInterval"`
+		Attachments      []*models.Attachment `json:"attachments"`
 		RawID            string               `json:"_id"`
 	}
 
@@ -509,6 +513,16 @@ func (s *ImportService) processTicket(docBytes []byte) error {
 	}
 
 	proxy.RawTicket.ID = parsedID
+
+	if len(proxy.Attachments) > 0 {
+		for _, a := range proxy.Attachments {
+			a.RefID = parsedID
+		}
+		err := s.attachmentRepo.CreateBulk(context.Background(), proxy.Attachments)
+		if err != nil {
+			return err
+		}
+	}
 
 	if proxy.CreatedAt != nil {
 		proxy.RawTicket.CreatedAt = &proxy.CreatedAt.Time

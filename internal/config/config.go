@@ -3,12 +3,14 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 )
 
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	Storage  StorageConfig
 }
 
 type ServerConfig struct {
@@ -30,6 +32,15 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
+type StorageConfig struct {
+	Endpoint  string
+	AccessKey string
+	SecretKey string
+	Bucket    string
+	UseSSL    bool
+	Location  string
+}
+
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -49,6 +60,14 @@ func Load() *Config {
 			Name:     GetEnv("DB_NAME", ""),
 			SSLMode:  GetEnv("DB_SSLMODE", "disable"),
 		},
+		Storage: StorageConfig{
+			Endpoint:  GetEnv("MINIO_ENDPOINT", "localhost:9000"),
+			AccessKey: GetEnv("MINIO_ACCESS_KEY", ""),
+			SecretKey: GetEnv("MINIO_SECRET_KEY", ""),
+			Bucket:    GetEnv("MINIO_BUCKET", "attachments"),
+			UseSSL:    GetEnvBool("MINIO_USE_SSL", false),
+			Location:  GetEnv("MINIO_LOCATION", "us-east-1"),
+		},
 	}
 }
 
@@ -58,6 +77,20 @@ func GetEnv(key, defaultValue string) string {
 	}
 
 	return defaultValue
+}
+
+func GetEnvBool(key string, defaultValue bool) bool {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return defaultValue
+	}
+
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return defaultValue
+	}
+
+	return parsed
 }
 
 func (dc *DatabaseConfig) ConnectionString() string {

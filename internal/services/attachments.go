@@ -5,22 +5,27 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
-	"os"
-	"path"
 	"path/filepath"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/grintheone/foxygen-server/internal/models"
 	"github.com/grintheone/foxygen-server/internal/repository"
+	"github.com/minio/minio-go/v7"
 )
 
 type AttachmentService struct {
-	repo repository.AttachmentRepository
+	repo       repository.AttachmentRepository
+	storage    *minio.Client
+	bucketName string
 }
 
-func NewAttachmentService(repo repository.AttachmentRepository) *AttachmentService {
-	return &AttachmentService{repo}
+func NewAttachmentService(repo repository.AttachmentRepository, storage *minio.Client, bucketName string) *AttachmentService {
+	return &AttachmentService{
+		repo:       repo,
+		storage:    storage,
+		bucketName: bucketName,
+	}
 }
 
 func (s *AttachmentService) generateUniqueFileName(originalName string) string {
@@ -31,7 +36,7 @@ func (s *AttachmentService) generateUniqueFileName(originalName string) string {
 	return baseName + ext
 }
 
-func (s *AttachmentService) UploadMultipleFiles(ctx context.Context, fileHeaders []*multipart.FileHeader, uploadDir string, refID uuid.UUID) ([]*models.Attachment, error) {
+func (s *AttachmentService) UploadMultipleFiles(ctx context.Context, fileHeaders []*multipart.FileHeader, refID uuid.UUID) ([]*models.Attachment, error) {
 	var (
 		attachments []*models.Attachment
 		mu          sync.Mutex
@@ -45,7 +50,7 @@ func (s *AttachmentService) UploadMultipleFiles(ctx context.Context, fileHeaders
 		go func(fh *multipart.FileHeader) {
 			defer wg.Done()
 
-			attachment, err := s.UploadFile(ctx, fh, uploadDir, refID)
+			attachment, err := s.UploadFile(ctx, fh, refID)
 			if err != nil {
 				errors <- fmt.Errorf("failed to upload %s: %w", fh.Filename, err)
 				return
@@ -79,57 +84,63 @@ func (s *AttachmentService) UploadMultipleFiles(ctx context.Context, fileHeaders
 	return attachments, nil
 }
 
-func (s *AttachmentService) UploadFile(ctx context.Context, fileHeader *multipart.FileHeader, uploadDir string, refID uuid.UUID) (*models.Attachment, error) {
-	// Generate unique file name
+func (s *AttachmentService) UploadFile(ctx context.Context, fileHeader *multipart.FileHeader, refID uuid.UUID) (*models.Attachment, error) {
+	// Generate object name
 	originalName := fileHeader.Filename
-	safeFileName := s.generateUniqueFileName(originalName)
-	filePath := path.Join(uploadDir, safeFileName)
+	objectName := s.generateUniqueFileName(originalName)
 
-	// Open uploaded file
+	// Open uploaded file stream
 	file, err := fileHeader.Open()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
 	}
 	defer file.Close()
 
-	// Create destination file
-	dst, err := os.Create(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create destination file: %w", err)
-	}
-	defer dst.Close()
-
-	// Copy file content
-	if _, err := io.Copy(dst, file); err != nil {
-		return nil, fmt.Errorf("failed to copy file content: %w", err)
-	}
-
-	// Get file info for size
-	fileInfo, err := os.Stat(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get file info: %w", err)
+	// Upload object to MinIO
+	if _, err := s.storage.PutObject(
+		ctx,
+		s.bucketName,
+		objectName,
+		file,
+		fileHeader.Size,
+		minio.PutObjectOptions{ContentType: fileHeader.Header.Get("Content-Type")},
+	); err != nil {
+		return nil, fmt.Errorf("failed to upload object to minio: %w", err)
 	}
 
 	// Create attachment record
+	ext := filepath.Ext(originalName)
 	attachment := &models.Attachment{
-		FileName:     safeFileName,
-		OriginalName: originalName,
-		FilePath:     filePath,
-		FileSize:     fileInfo.Size(),
-		MimeType:     fileHeader.Header.Get("Content-Type"),
-		RefID:        refID,
+		ID:        objectName,
+		Name:      originalName,
+		MediaType: fileHeader.Header.Get("Content-Type"),
+		Ext:       ext,
+		RefID:     refID,
 	}
 
 	if err := s.repo.Create(ctx, attachment); err != nil {
-		// Clean up file if database operation fails
-		os.Remove(filePath)
+		_ = s.storage.RemoveObject(ctx, s.bucketName, objectName, minio.RemoveObjectOptions{})
 		return nil, fmt.Errorf("failed to save attachment to database: %w", err)
 	}
 
 	return attachment, nil
 }
 
-func (s *AttachmentService) GetAttachmentsByRefID(ctx context.Context, refID uuid.UUID) (*[]models.Attachment, error) {
+func (s *AttachmentService) GetFile(ctx context.Context, objectName string) (io.ReadCloser, error) {
+	object, err := s.storage.GetObject(ctx, s.bucketName, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object from minio: %w", err)
+	}
+
+	if _, err := object.Stat(); err != nil {
+		_ = object.Close()
+		return nil, fmt.Errorf("failed to stat object from minio: %w", err)
+	}
+
+	return object, nil
+}
+
+func (s *AttachmentService) GetAttachmentsByRefID(ctx context.Context, refID uuid.UUID) ([]*models.Attachment, error) {
 	attachments, err := s.repo.GetAttachmentsByRefID(ctx, refID)
 	if err != nil {
 		return nil, fmt.Errorf("service error fetching attachments: %w", err)

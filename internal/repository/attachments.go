@@ -10,7 +10,8 @@ import (
 
 type AttachmentRepository interface {
 	Create(ctx context.Context, attachment *models.Attachment) error
-	GetAttachmentsByRefID(ctx context.Context, refID uuid.UUID) (*[]models.Attachment, error)
+	CreateBulk(ctx context.Context, attachments []*models.Attachment) error
+	GetAttachmentsByRefID(ctx context.Context, refID uuid.UUID) ([]*models.Attachment, error)
 	GetAttachmentByID(ctx context.Context, id int) (*models.Attachment, error)
 	// Delete(ctx context.Context, id int) error
 }
@@ -25,11 +26,11 @@ func NewAttachmentRepository(db *sqlx.DB) AttachmentRepository {
 
 func (r *attachmentRepository) Create(ctx context.Context, attachment *models.Attachment) error {
 	query := `
-		INSERT INTO attachments (file_name, original_name, file_size, file_path, mime_type, ref_id)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO attachments (id, name, media_type, ext, ref_id)
+		VALUES (:id, :name, :media_type, :ext, :ref_id)
 	`
 
-	_, err := r.db.ExecContext(ctx, query, attachment.FileName, attachment.OriginalName, attachment.FileSize, attachment.FilePath, attachment.MimeType, attachment.RefID)
+	_, err := r.db.NamedExecContext(ctx, query, attachment)
 	if err != nil {
 		return err
 	}
@@ -37,19 +38,33 @@ func (r *attachmentRepository) Create(ctx context.Context, attachment *models.At
 	return nil
 }
 
-func (r *attachmentRepository) GetAttachmentsByRefID(ctx context.Context, refID uuid.UUID) (*[]models.Attachment, error) {
+func (r *attachmentRepository) CreateBulk(ctx context.Context, attachments []*models.Attachment) error {
+	if len(attachments) == 0 {
+		return nil
+	}
+
+	query := `
+			INSERT INTO attachments (id, name, media_type, ext, ref_id)
+			VALUES (:id, :name, :media_type, :ext, :ref_id)
+			`
+
+	_, err := r.db.NamedExecContext(ctx, query, attachments)
+	return err
+}
+
+func (r *attachmentRepository) GetAttachmentsByRefID(ctx context.Context, refID uuid.UUID) ([]*models.Attachment, error) {
 	query := `
 		SELECT * FROM attachments WHERE ref_id = $1
 	`
 
-	var attachments []models.Attachment
+	var attachments []*models.Attachment
 
 	err := r.db.SelectContext(ctx, &attachments, query, refID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &attachments, nil
+	return attachments, nil
 }
 
 func (r *attachmentRepository) GetAttachmentByID(ctx context.Context, id int) (*models.Attachment, error) {

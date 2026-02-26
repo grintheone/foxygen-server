@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 
 type AttachmentHandler struct {
 	attachmentService *services.AttachmentService
-	uploadDir         string
 }
 
 func (h *AttachmentHandler) LoadImageByID(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +29,20 @@ func (h *AttachmentHandler) LoadImageByID(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	writeFile(w, r, *attachment)
+	file, err := h.attachmentService.GetFile(r.Context(), attachment.ID)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	defer file.Close()
+
+	w.Header().Set("Content-Disposition", "attachment; filename="+attachment.Name)
+	w.Header().Set("Content-Type", attachment.MediaType)
+
+	if _, err := io.Copy(w, file); err != nil {
+		serverError(w, err)
+		return
+	}
 }
 
 func (h *AttachmentHandler) GetAttachmentsByRefID(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +100,7 @@ func (h *AttachmentHandler) UploadMultiple(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Upload all files
-	attachments, err := h.attachmentService.UploadMultipleFiles(r.Context(), files, h.uploadDir, refUUID)
+	attachments, err := h.attachmentService.UploadMultipleFiles(r.Context(), files, refUUID)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -128,7 +141,7 @@ func (h *AttachmentHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	// Upload file
-	attachment, err := h.attachmentService.UploadFile(r.Context(), fileHeader, h.uploadDir, refUUID)
+	attachment, err := h.attachmentService.UploadFile(r.Context(), fileHeader, refUUID)
 	if err != nil {
 		serverError(w, err)
 		return
