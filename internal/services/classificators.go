@@ -17,6 +17,15 @@ func NewClassificatorService(r repository.ClassificatorsRepository) *Classificat
 	return &ClassificatorService{repo: r}
 }
 
+func (s *ClassificatorService) ListClassificators(ctx context.Context) (*[]models.Classificator, error) {
+	classificators, err := s.repo.ListClassificators(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("service error listing classificators: %w", err)
+	}
+
+	return classificators, nil
+}
+
 func (s *ClassificatorService) GetClassificatorByID(ctx context.Context, uuid uuid.UUID) (*models.Classificator, error) {
 	classificator, err := s.repo.GetClassificatorByID(ctx, uuid)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 )
 
 type ClassificatorsRepository interface {
+	ListClassificators(ctx context.Context) (*[]models.Classificator, error)
 	NewClassificator(ctx context.Context, payload models.Classificator) error
 	GetClassificatorByID(ctx context.Context, uuid uuid.UUID) (*models.Classificator, error)
 	GetDevicesByClassificatorID(ctx context.Context, uuid uuid.UUID) (*[]models.Device, error)
@@ -23,6 +24,18 @@ type classificatorRepository struct {
 
 func NewClassificatorRepository(db *sqlx.DB) *classificatorRepository {
 	return &classificatorRepository{db}
+}
+
+func (r *classificatorRepository) ListClassificators(ctx context.Context) (*[]models.Classificator, error) {
+	query := `SELECT * FROM classificators`
+
+	var classificators []models.Classificator
+	err := r.db.SelectContext(ctx, &classificators, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return &classificators, nil
 }
 
 func (r *classificatorRepository) GetClassificatorByID(ctx context.Context, uuid uuid.UUID) (*models.Classificator, error) {

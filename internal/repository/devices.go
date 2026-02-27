@@ -83,36 +83,32 @@ func (r *deviceRepository) CreateNewDevice(ctx context.Context, payload models.D
 }
 
 func (r *deviceRepository) UpdateDeviceByID(ctx context.Context, uuid uuid.UUID, payload models.DeviceUpdates) (*models.DeviceSinglePage, error) {
-	existing, err := r.GetDeviceByID(ctx, uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	if payload.SerialNumber != nil {
-		existing.SerialNumber = *payload.SerialNumber
-	}
-	if payload.Properties != nil {
-		existing.Properties = *payload.Properties
-	}
-	if payload.ConntectedToLIS != nil {
-		existing.ConntectedToLIS = *payload.ConntectedToLIS
-	}
-	if payload.IsUsed != nil {
-		existing.IsUsed = *payload.IsUsed
-	}
-
 	query := `
 		UPDATE devices
-		SET classificator = :classificator, serial_number = :serial_number, properties = :properties, connected_to_lis = :connected_to_lis, is_used = :is_used
-		WHERE id = :id
+		SET
+			classificator = COALESCE($2, classificator),
+			serial_number = COALESCE($3, serial_number),
+			properties = COALESCE($4, properties),
+			connected_to_lis = COALESCE($5, connected_to_lis),
+			is_used = COALESCE($6, is_used)
+		WHERE id = $1
 	`
 
-	_, err = r.db.NamedExecContext(ctx, query, &existing)
+	_, err := r.db.ExecContext(
+		ctx,
+		query,
+		uuid,
+		payload.Classificator,
+		payload.SerialNumber,
+		payload.Properties,
+		payload.ConntectedToLIS,
+		payload.IsUsed,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	return existing, nil
+	return r.GetDeviceByID(ctx, uuid)
 }
 
 func (r *deviceRepository) GetDeviceRemoteOptions(ctx context.Context, uuid uuid.UUID) ([]*models.DeviceRemoteOption, error) {

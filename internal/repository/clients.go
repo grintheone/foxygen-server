@@ -70,18 +70,19 @@ func (r *clientsRepository) UpdateClient(ctx context.Context, uuid uuid.UUID, pa
 		existing.Address = *payload.Address
 	}
 	if payload.Location != nil {
-		// existing.Location = *payload.Location
+		location := models.Locations(*payload.Location)
+		existing.Location = &location
 	}
 	if payload.LaboratorySystem != nil {
 		existing.LaboratorySystem = payload.LaboratorySystem
 	}
 	if payload.Manager != nil {
-		// existing.Manager = *payload.Manager
+		existing.Manager = *payload.Manager
 	}
 
 	query := `
         UPDATE clients
-        SET title = :title, region = :region, address = :address, location = :location, laboratory_system = :laboratory_system
+        SET title = :title, region = :region, address = :address, location = :location, laboratory_system = :laboratory_system, manager = :manager
         WHERE id = :id
     `
 

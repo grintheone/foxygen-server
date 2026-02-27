@@ -107,8 +107,9 @@ func NewRouter(
 			})
 
 			r.Route("/classificators", func(r chi.Router) {
-				r.Get("/{uuid}", classificatorHandler.GetClassificatorByID)
+				r.Get("/", classificatorHandler.ListClassificators)
 				r.Get("/devices/{uuid}", classificatorHandler.GetDevicesByClassificatorID)
+				r.Get("/{uuid}", classificatorHandler.GetClassificatorByID)
 				r.Post("/", classificatorHandler.NewClassificator)
 				r.Delete("/{uuid}", classificatorHandler.RemoveClassificatorByID)
 				r.Patch("/{uuid}", classificatorHandler.UpdateClassificatorInfo)

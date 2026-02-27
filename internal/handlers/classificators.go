@@ -13,6 +13,16 @@ type ClassificatorHandler struct {
 	classificatorService *services.ClassificatorService
 }
 
+func (h *ClassificatorHandler) ListClassificators(w http.ResponseWriter, r *http.Request) {
+	classificators, err := h.classificatorService.ListClassificators(r.Context())
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, classificators)
+}
+
 func (h *ClassificatorHandler) GetClassificatorByID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := chi.URLParam(r, "uuid")
 
@@ -119,6 +129,10 @@ func (h *ClassificatorHandler) UpdateClassificatorInfo(w http.ResponseWriter, r 
 	}
 
 	updated, err := h.classificatorService.UpdateClassificatorInfo(r.Context(), uuid, body)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
 
 	writeJSON(w, http.StatusOK, updated)
 }
