@@ -17,7 +17,7 @@ type TicketHandler struct {
 }
 
 func (h *TicketHandler) ListAllTickets(w http.ResponseWriter, r *http.Request) {
-	limit, offset, sortByTitle, ok := parsePaginationParams(r, 100000)
+	limit, offset, sortByTitle, search, ok := parsePaginationParams(r, 100000)
 	if !ok {
 		clientError(w, http.StatusBadRequest)
 		return
@@ -35,7 +35,7 @@ func (h *TicketHandler) ListAllTickets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tickets, err := h.ticketService.ListAllTickets(r.Context(), executorID, role, limit, offset, sortByTitle)
+	tickets, err := h.ticketService.ListAllTickets(r.Context(), executorID, role, limit, offset, sortByTitle, search)
 	if err != nil {
 		serverError(w, err)
 		return

@@ -10,7 +10,7 @@ import (
 )
 
 type ClassificatorsRepository interface {
-	ListClassificators(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Classificator, error)
+	ListClassificators(ctx context.Context, limit int, offset int, sortByTitle bool, search string) (*[]models.Classificator, error)
 	NewClassificator(ctx context.Context, payload models.Classificator) error
 	GetClassificatorByID(ctx context.Context, uuid uuid.UUID) (*models.Classificator, error)
 	GetDevicesByClassificatorID(ctx context.Context, uuid uuid.UUID) (*[]models.Device, error)
@@ -26,15 +26,15 @@ func NewClassificatorRepository(db *sqlx.DB) *classificatorRepository {
 	return &classificatorRepository{db}
 }
 
-func (r *classificatorRepository) ListClassificators(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Classificator, error) {
-	query := `SELECT * FROM classificators`
+func (r *classificatorRepository) ListClassificators(ctx context.Context, limit int, offset int, sortByTitle bool, search string) (*[]models.Classificator, error) {
+	query := `SELECT * FROM classificators WHERE ($1 = '' OR title ILIKE '%' || $1 || '%')`
 	if sortByTitle {
 		query += ` ORDER BY title ASC`
 	}
-	query += ` LIMIT $1 OFFSET $2`
+	query += ` LIMIT $2 OFFSET $3`
 
 	var classificators []models.Classificator
-	err := r.db.SelectContext(ctx, &classificators, query, limit, offset)
+	err := r.db.SelectContext(ctx, &classificators, query, search, limit, offset)
 	if err != nil {
 		return nil, err
 	}

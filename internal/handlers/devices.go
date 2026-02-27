@@ -14,13 +14,13 @@ type DeviceHandler struct {
 }
 
 func (h *DeviceHandler) GetAllDevices(w http.ResponseWriter, r *http.Request) {
-	limit, offset, sortByTitle, ok := parsePaginationParams(r, 100000)
+	limit, offset, sortByTitle, search, ok := parsePaginationParams(r, 100000)
 	if !ok {
 		clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	devices, err := h.deviceService.GetAllDevices(r.Context(), limit, offset, sortByTitle)
+	devices, err := h.deviceService.GetAllDevices(r.Context(), limit, offset, sortByTitle, search)
 	if err != nil {
 		serverError(w, err)
 		return

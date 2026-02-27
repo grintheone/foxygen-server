@@ -12,8 +12,8 @@ import (
 )
 
 type TicketsRepository interface {
-	ListAllTickets(ctx context.Context, executorID string, limit int, offset int, sortByTitle bool) ([]*models.TicketCard, error)
-	ListAllDepartmentTickets(ctx context.Context, currentUserID string, limit int, offset int, sortByTitle bool) ([]*models.TicketCard, error)
+	ListAllTickets(ctx context.Context, executorID string, limit int, offset int, sortByTitle bool, search string) ([]*models.TicketCard, error)
+	ListAllDepartmentTickets(ctx context.Context, currentUserID string, limit int, offset int, sortByTitle bool, search string) ([]*models.TicketCard, error)
 	GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.TicketSinglePage, error)
 	DeleteTicketByID(ctx context.Context, uuid uuid.UUID) error
 	CreateNewTicket(ctx context.Context, payload models.RawTicket) (*string, error)
@@ -35,7 +35,7 @@ func NewTicketRepository(db *sqlx.DB) *ticketsRepository {
 	return &ticketsRepository{db}
 }
 
-func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID string, limit int, offset int, sortByTitle bool) ([]*models.TicketCard, error) {
+func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID string, limit int, offset int, sortByTitle bool, search string) ([]*models.TicketCard, error) {
 	orderBy := `
 	CASE
 		WHEN t.assigned_end::TIMESTAMP < NOW() THEN 0
@@ -77,13 +77,14 @@ func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID strin
 	LEFT JOIN users ex ON t.executor = ex.user_id
 	LEFT JOIN departments dep ON t.department = dep.id
 	WHERE executor = $1
+	AND ($2 = '' OR tr.title ILIKE '%' || $2 || '%')
 	ORDER BY ` + orderBy + `
-	LIMIT $2 OFFSET $3;
+	LIMIT $3 OFFSET $4;
 	`
 	// query := "SELECT * FROM tickets WHERE executor = $1"
 	var tickets []*models.TicketCard
 
-	err := r.db.SelectContext(ctx, &tickets, query, executorID, limit, offset)
+	err := r.db.SelectContext(ctx, &tickets, query, executorID, search, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID strin
 	return tickets, nil
 }
 
-func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, currentUserID string, limit int, offset int, sortByTitle bool) ([]*models.TicketCard, error) {
+func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, currentUserID string, limit int, offset int, sortByTitle bool, search string) ([]*models.TicketCard, error) {
 	query := `SELECT department FROM users WHERE user_id = $1`
 
 	var department uuid.UUID
@@ -140,12 +141,13 @@ func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, curren
 	LEFT JOIN users ex ON t.executor = ex.user_id
 	LEFT JOIN departments dep ON t.department = dep.id
 	WHERE t.department = $1
+	AND ($2 = '' OR tr.title ILIKE '%' || $2 || '%')
 	ORDER BY ` + orderBy + `
-	LIMIT $2 OFFSET $3;
+	LIMIT $3 OFFSET $4;
 	`
 	var tickets []*models.TicketCard
 
-	err = r.db.SelectContext(ctx, &tickets, query, department, limit, offset)
+	err = r.db.SelectContext(ctx, &tickets, query, department, search, limit, offset)
 	if err != nil {
 		return nil, err
 	}

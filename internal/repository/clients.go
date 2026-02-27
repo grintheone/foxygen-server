@@ -10,7 +10,7 @@ import (
 )
 
 type ClientsRepository interface {
-	ListClients(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Client, error)
+	ListClients(ctx context.Context, limit int, offset int, sortByTitle bool, search string) (*[]models.Client, error)
 	CreateClient(ctx context.Context, payload models.Client) error
 	UpdateClient(ctx context.Context, uuid uuid.UUID, payload models.ClientUpdate) (*models.Client, error)
 	DeleteClient(ctx context.Context, uuid uuid.UUID) error
@@ -25,16 +25,16 @@ func NewClientRepository(db *sqlx.DB) ClientsRepository {
 	return &clientsRepository{db}
 }
 
-func (r *clientsRepository) ListClients(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Client, error) {
+func (r *clientsRepository) ListClients(ctx context.Context, limit int, offset int, sortByTitle bool, search string) (*[]models.Client, error) {
 	var clients []models.Client
 
-	query := `SELECT * FROM clients`
+	query := `SELECT * FROM clients WHERE ($1 = '' OR title ILIKE '%' || $1 || '%')`
 	if sortByTitle {
 		query += ` ORDER BY title ASC`
 	}
-	query += ` LIMIT $1 OFFSET $2`
+	query += ` LIMIT $2 OFFSET $3`
 
-	err := r.db.SelectContext(ctx, &clients, query, limit, offset)
+	err := r.db.SelectContext(ctx, &clients, query, search, limit, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 // The serverError helper writes an error message and stack trace to the errorLog,
@@ -45,15 +46,16 @@ func writeJSON[T any](w http.ResponseWriter, status int, data T) {
 	}
 }
 
-func parsePaginationParams(r *http.Request, defaultLimit int) (limit int, offset int, sortByTitle bool, ok bool) {
+func parsePaginationParams(r *http.Request, defaultLimit int) (limit int, offset int, sortByTitle bool, search string, ok bool) {
 	limit = defaultLimit
 	offset = 0
 	sortByTitle = r.URL.Query().Get("sort") == "title"
+	search = strings.TrimSpace(r.URL.Query().Get("search"))
 
 	if rawLimit := r.URL.Query().Get("limit"); rawLimit != "" {
 		parsedLimit, err := strconv.Atoi(rawLimit)
 		if err != nil || parsedLimit <= 0 {
-			return 0, 0, false, false
+			return 0, 0, false, "", false
 		}
 
 		limit = parsedLimit
@@ -62,11 +64,11 @@ func parsePaginationParams(r *http.Request, defaultLimit int) (limit int, offset
 	if rawOffset := r.URL.Query().Get("offset"); rawOffset != "" {
 		parsedOffset, err := strconv.Atoi(rawOffset)
 		if err != nil || parsedOffset < 0 {
-			return 0, 0, false, false
+			return 0, 0, false, "", false
 		}
 
 		offset = parsedOffset
 	}
 
-	return limit, offset, sortByTitle, true
+	return limit, offset, sortByTitle, search, true
 }

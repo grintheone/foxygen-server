@@ -17,9 +17,9 @@ func NewTicketService(r repository.TicketsRepository) *TicketService {
 	return &TicketService{repo: r}
 }
 
-func (s *TicketService) ListAllTickets(ctx context.Context, currentUserID string, role string, limit int, offset int, sortByTitle bool) ([]*models.TicketCard, error) {
+func (s *TicketService) ListAllTickets(ctx context.Context, currentUserID string, role string, limit int, offset int, sortByTitle bool, search string) ([]*models.TicketCard, error) {
 	if role == "user" {
-		tickets, err := s.repo.ListAllTickets(ctx, currentUserID, limit, offset, sortByTitle)
+		tickets, err := s.repo.ListAllTickets(ctx, currentUserID, limit, offset, sortByTitle, search)
 		if err != nil {
 			return nil, fmt.Errorf("service error getting all tickets: %w", err)
 		}
@@ -28,7 +28,7 @@ func (s *TicketService) ListAllTickets(ctx context.Context, currentUserID string
 	}
 
 	if role == "coordinator" {
-		tickets, err := s.repo.ListAllDepartmentTickets(ctx, currentUserID, limit, offset, sortByTitle)
+		tickets, err := s.repo.ListAllDepartmentTickets(ctx, currentUserID, limit, offset, sortByTitle, search)
 		if err != nil {
 			return nil, fmt.Errorf("service error getting all tickets: %w", err)
 		}

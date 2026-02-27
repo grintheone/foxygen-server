@@ -56,11 +56,27 @@ func (m MaintenanceRegulations) Value() (driver.Value, error) {
 }
 
 // 3. Implement sql.Scanner to convert the database JSON back into the slice
-func (m MaintenanceRegulations) Scan(value interface{}) error {
-	bytes, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("failed to unmarshal JSONB value: %v", value)
+func (m *MaintenanceRegulations) Scan(value any) error {
+	if value == nil {
+		*m = MaintenanceRegulations{}
+		return nil
 	}
+
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return fmt.Errorf("failed to unmarshal JSONB value: %T", value)
+	}
+
+	if len(bytes) == 0 || string(bytes) == "null" {
+		*m = MaintenanceRegulations{}
+		return nil
+	}
+
 	return json.Unmarshal(bytes, m)
 }
 
