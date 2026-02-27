@@ -149,7 +149,7 @@ func (s *AttachmentService) GetAttachmentsByRefID(ctx context.Context, refID uui
 	return attachments, nil
 }
 
-func (s *AttachmentService) GetAttachmentByID(ctx context.Context, id int) (*models.Attachment, error) {
+func (s *AttachmentService) GetAttachmentByID(ctx context.Context, id string) (*models.Attachment, error) {
 	attachment, err := s.repo.GetAttachmentByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting attachment by id: %w", err)

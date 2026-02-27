@@ -12,7 +12,7 @@ type AttachmentRepository interface {
 	Create(ctx context.Context, attachment *models.Attachment) error
 	CreateBulk(ctx context.Context, attachments []*models.Attachment) error
 	GetAttachmentsByRefID(ctx context.Context, refID uuid.UUID) ([]*models.Attachment, error)
-	GetAttachmentByID(ctx context.Context, id int) (*models.Attachment, error)
+	GetAttachmentByID(ctx context.Context, id string) (*models.Attachment, error)
 	// Delete(ctx context.Context, id int) error
 }
 
@@ -67,7 +67,7 @@ func (r *attachmentRepository) GetAttachmentsByRefID(ctx context.Context, refID 
 	return attachments, nil
 }
 
-func (r *attachmentRepository) GetAttachmentByID(ctx context.Context, id int) (*models.Attachment, error) {
+func (r *attachmentRepository) GetAttachmentByID(ctx context.Context, id string) (*models.Attachment, error) {
 	query := `SELECT * FROM attachments WHERE id = $1`
 
 	var attachment models.Attachment

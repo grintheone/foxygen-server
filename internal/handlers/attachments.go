@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -17,13 +16,8 @@ type AttachmentHandler struct {
 
 func (h *AttachmentHandler) LoadImageByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		clientError(w, http.StatusBadRequest)
-		return
-	}
 
-	attachment, err := h.attachmentService.GetAttachmentByID(r.Context(), id)
+	attachment, err := h.attachmentService.GetAttachmentByID(r.Context(), idStr)
 	if err != nil {
 		serverError(w, err)
 		return
