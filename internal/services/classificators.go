@@ -17,8 +17,8 @@ func NewClassificatorService(r repository.ClassificatorsRepository) *Classificat
 	return &ClassificatorService{repo: r}
 }
 
-func (s *ClassificatorService) ListClassificators(ctx context.Context) (*[]models.Classificator, error) {
-	classificators, err := s.repo.ListClassificators(ctx)
+func (s *ClassificatorService) ListClassificators(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Classificator, error) {
+	classificators, err := s.repo.ListClassificators(ctx, limit, offset, sortByTitle)
 	if err != nil {
 		return nil, fmt.Errorf("service error listing classificators: %w", err)
 	}

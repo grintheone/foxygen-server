@@ -10,7 +10,7 @@ import (
 )
 
 type DevicesRepository interface {
-	GetAllDevices(ctx context.Context) (*[]models.Device, error)
+	GetAllDevices(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Device, error)
 	GetDeviceByID(ctx context.Context, uuid uuid.UUID) (*models.DeviceSinglePage, error)
 	RemoveDeviceByID(ctx context.Context, uuid uuid.UUID) error
 	CreateNewDevice(ctx context.Context, payload models.Device) error
@@ -26,11 +26,15 @@ func NewDeviceRepository(db *sqlx.DB) *deviceRepository {
 	return &deviceRepository{db}
 }
 
-func (r *deviceRepository) GetAllDevices(ctx context.Context) (*[]models.Device, error) {
+func (r *deviceRepository) GetAllDevices(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Device, error) {
 	query := `SELECT * FROM devices`
+	if sortByTitle {
+		query += ` ORDER BY serial_number ASC`
+	}
+	query += ` LIMIT $1 OFFSET $2`
 
 	var devices []models.Device
-	err := r.db.SelectContext(ctx, &devices, query)
+	err := r.db.SelectContext(ctx, &devices, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}

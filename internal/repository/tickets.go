@@ -12,8 +12,8 @@ import (
 )
 
 type TicketsRepository interface {
-	ListAllTickets(ctx context.Context, executorID string) ([]*models.TicketCard, error)
-	ListAllDepartmentTickets(ctx context.Context, currentUserID string) ([]*models.TicketCard, error)
+	ListAllTickets(ctx context.Context, executorID string, limit int, offset int, sortByTitle bool) ([]*models.TicketCard, error)
+	ListAllDepartmentTickets(ctx context.Context, currentUserID string, limit int, offset int, sortByTitle bool) ([]*models.TicketCard, error)
 	GetTicketByID(ctx context.Context, uuid uuid.UUID) (*models.TicketSinglePage, error)
 	DeleteTicketByID(ctx context.Context, uuid uuid.UUID) error
 	CreateNewTicket(ctx context.Context, payload models.RawTicket) (*string, error)
@@ -35,7 +35,19 @@ func NewTicketRepository(db *sqlx.DB) *ticketsRepository {
 	return &ticketsRepository{db}
 }
 
-func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID string) ([]*models.TicketCard, error) {
+func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID string, limit int, offset int, sortByTitle bool) ([]*models.TicketCard, error) {
+	orderBy := `
+	CASE
+		WHEN t.assigned_end::TIMESTAMP < NOW() THEN 0
+		WHEN urgent = TRUE THEN 1
+		ELSE 2
+	END,
+	t.assigned_end::TIMESTAMP ASC
+	`
+	if sortByTitle {
+		orderBy = `tr.title ASC, t.number ASC`
+	}
+
 	query := `
 	SELECT
     t.id,
@@ -65,18 +77,13 @@ func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID strin
 	LEFT JOIN users ex ON t.executor = ex.user_id
 	LEFT JOIN departments dep ON t.department = dep.id
 	WHERE executor = $1
-	ORDER BY
-		CASE
-        WHEN t.assigned_end::TIMESTAMP < NOW() THEN 0  -- Overdue first
-        WHEN urgent = TRUE THEN 1    -- Then urgent
-        ELSE 2                                   -- Then everything else
-    END,
-    t.assigned_end::TIMESTAMP ASC;
+	ORDER BY ` + orderBy + `
+	LIMIT $2 OFFSET $3;
 	`
 	// query := "SELECT * FROM tickets WHERE executor = $1"
 	var tickets []*models.TicketCard
 
-	err := r.db.SelectContext(ctx, &tickets, query, executorID)
+	err := r.db.SelectContext(ctx, &tickets, query, executorID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +91,7 @@ func (r *ticketsRepository) ListAllTickets(ctx context.Context, executorID strin
 	return tickets, nil
 }
 
-func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, currentUserID string) ([]*models.TicketCard, error) {
+func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, currentUserID string, limit int, offset int, sortByTitle bool) ([]*models.TicketCard, error) {
 	query := `SELECT department FROM users WHERE user_id = $1`
 
 	var department uuid.UUID
@@ -95,6 +102,18 @@ func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, curren
 	}
 
 	fmt.Println(department, "department ID")
+
+	orderBy := `
+	CASE
+		WHEN t.assigned_end::TIMESTAMP < NOW() THEN 0
+		WHEN urgent = TRUE THEN 1
+		ELSE 2
+	END,
+	t.assigned_end::TIMESTAMP ASC
+	`
+	if sortByTitle {
+		orderBy = `tr.title ASC, t.number ASC`
+	}
 
 	query = `
 	SELECT
@@ -121,17 +140,12 @@ func (r *ticketsRepository) ListAllDepartmentTickets(ctx context.Context, curren
 	LEFT JOIN users ex ON t.executor = ex.user_id
 	LEFT JOIN departments dep ON t.department = dep.id
 	WHERE t.department = $1
-	ORDER BY
-		CASE
-        WHEN t.assigned_end::TIMESTAMP < NOW() THEN 0  -- Overdue first
-        WHEN urgent = TRUE THEN 1    -- Then urgent
-        ELSE 2                                   -- Then everything else
-    END,
-    t.assigned_end::TIMESTAMP ASC;
+	ORDER BY ` + orderBy + `
+	LIMIT $2 OFFSET $3;
 	`
 	var tickets []*models.TicketCard
 
-	err = r.db.SelectContext(ctx, &tickets, query, department)
+	err = r.db.SelectContext(ctx, &tickets, query, department, limit, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,13 @@ type ClassificatorHandler struct {
 }
 
 func (h *ClassificatorHandler) ListClassificators(w http.ResponseWriter, r *http.Request) {
-	classificators, err := h.classificatorService.ListClassificators(r.Context())
+	limit, offset, sortByTitle, ok := parsePaginationParams(r, 100000)
+	if !ok {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	classificators, err := h.classificatorService.ListClassificators(r.Context(), limit, offset, sortByTitle)
 	if err != nil {
 		serverError(w, err)
 		return

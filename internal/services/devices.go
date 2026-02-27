@@ -17,8 +17,8 @@ func NewDeviceService(r repository.DevicesRepository) *DeviceService {
 	return &DeviceService{repo: r}
 }
 
-func (s *DeviceService) GetAllDevices(ctx context.Context) (*[]models.Device, error) {
-	devices, err := s.repo.GetAllDevices(ctx)
+func (s *DeviceService) GetAllDevices(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Device, error) {
+	devices, err := s.repo.GetAllDevices(ctx, limit, offset, sortByTitle)
 	if err != nil {
 		return nil, fmt.Errorf("service error getting all devices: %w", err)
 	}

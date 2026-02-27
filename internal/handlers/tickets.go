@@ -17,6 +17,12 @@ type TicketHandler struct {
 }
 
 func (h *TicketHandler) ListAllTickets(w http.ResponseWriter, r *http.Request) {
+	limit, offset, sortByTitle, ok := parsePaginationParams(r, 100000)
+	if !ok {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
 	role, ok := middlewares.GetUserRoleFromContext(r.Context())
 	if !ok {
 		serverError(w, fmt.Errorf("Unable to check for user role"))
@@ -29,7 +35,7 @@ func (h *TicketHandler) ListAllTickets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tickets, err := h.ticketService.ListAllTickets(r.Context(), executorID, role)
+	tickets, err := h.ticketService.ListAllTickets(r.Context(), executorID, role, limit, offset, sortByTitle)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -164,7 +170,6 @@ func (h *TicketHandler) CloseTicket(w http.ResponseWriter, r *http.Request) {
 
 func (h *TicketHandler) GetTicketReasons(w http.ResponseWriter, r *http.Request) {
 	reasons, err := h.ticketService.GetTicketReasons(r.Context())
-
 	if err != nil {
 		serverError(w, err)
 		return

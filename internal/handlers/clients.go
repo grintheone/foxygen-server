@@ -14,7 +14,13 @@ type ClientHandler struct {
 }
 
 func (h *ClientHandler) ListClients(w http.ResponseWriter, r *http.Request) {
-	clients, err := h.clientService.ListClients(r.Context())
+	limit, offset, sortByTitle, ok := parsePaginationParams(r, 100000)
+	if !ok {
+		clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	clients, err := h.clientService.ListClients(r.Context(), limit, offset, sortByTitle)
 	if err != nil {
 		serverError(w, err)
 		return

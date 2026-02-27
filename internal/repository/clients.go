@@ -10,7 +10,7 @@ import (
 )
 
 type ClientsRepository interface {
-	ListClients(ctx context.Context) (*[]models.Client, error)
+	ListClients(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Client, error)
 	CreateClient(ctx context.Context, payload models.Client) error
 	UpdateClient(ctx context.Context, uuid uuid.UUID, payload models.ClientUpdate) (*models.Client, error)
 	DeleteClient(ctx context.Context, uuid uuid.UUID) error
@@ -25,12 +25,16 @@ func NewClientRepository(db *sqlx.DB) ClientsRepository {
 	return &clientsRepository{db}
 }
 
-func (r *clientsRepository) ListClients(ctx context.Context) (*[]models.Client, error) {
+func (r *clientsRepository) ListClients(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Client, error) {
 	var clients []models.Client
 
-	query := `SELECT * FROM clients;`
+	query := `SELECT * FROM clients`
+	if sortByTitle {
+		query += ` ORDER BY title ASC`
+	}
+	query += ` LIMIT $1 OFFSET $2`
 
-	err := r.db.SelectContext(ctx, &clients, query)
+	err := r.db.SelectContext(ctx, &clients, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}

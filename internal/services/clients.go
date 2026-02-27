@@ -17,8 +17,8 @@ func NewClientService(r repository.ClientsRepository) *ClientService {
 	return &ClientService{repo: r}
 }
 
-func (s *ClientService) ListClients(ctx context.Context) (*[]models.Client, error) {
-	clients, err := s.repo.ListClients(ctx)
+func (s *ClientService) ListClients(ctx context.Context, limit int, offset int, sortByTitle bool) (*[]models.Client, error) {
+	clients, err := s.repo.ListClients(ctx, limit, offset, sortByTitle)
 	if err != nil {
 		return nil, fmt.Errorf("service error fetching all clients: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 // The serverError helper writes an error message and stack trace to the errorLog,
@@ -42,4 +43,30 @@ func writeJSON[T any](w http.ResponseWriter, status int, data T) {
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		serverError(w, err)
 	}
+}
+
+func parsePaginationParams(r *http.Request, defaultLimit int) (limit int, offset int, sortByTitle bool, ok bool) {
+	limit = defaultLimit
+	offset = 0
+	sortByTitle = r.URL.Query().Get("sort") == "title"
+
+	if rawLimit := r.URL.Query().Get("limit"); rawLimit != "" {
+		parsedLimit, err := strconv.Atoi(rawLimit)
+		if err != nil || parsedLimit <= 0 {
+			return 0, 0, false, false
+		}
+
+		limit = parsedLimit
+	}
+
+	if rawOffset := r.URL.Query().Get("offset"); rawOffset != "" {
+		parsedOffset, err := strconv.Atoi(rawOffset)
+		if err != nil || parsedOffset < 0 {
+			return 0, 0, false, false
+		}
+
+		offset = parsedOffset
+	}
+
+	return limit, offset, sortByTitle, true
 }
