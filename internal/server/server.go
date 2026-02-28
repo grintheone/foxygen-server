@@ -99,6 +99,7 @@ func NewApp(cfg *config.Config, importFile *string) (*App, error) {
 
 	// Regions
 	regionsRepo := repository.NewRegionRepo(db)
+	regionService := services.NewRegionService(regionsRepo)
 	// Researh Type
 	researchTypeRepo := repository.NewResearchTypeRepo(db)
 	// Manufacturer
@@ -133,6 +134,7 @@ func NewApp(cfg *config.Config, importFile *string) (*App, error) {
 		authService,
 		userService,
 		clientService,
+		regionService,
 		commentService,
 		contactService,
 		deviceService,

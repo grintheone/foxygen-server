@@ -303,7 +303,7 @@ func (s *ImportService) processUser(docBytes []byte, index int) error {
 
 func (s *ImportService) processRegion(docBytes []byte) error {
 	var proxy struct {
-		repository.Region
+		models.Region
 		RawID string `json:"_id"`
 	}
 
@@ -316,7 +316,7 @@ func (s *ImportService) processRegion(docBytes []byte) error {
 		return err
 	}
 
-	proxy.Region.ID = parsedID
+	proxy.ID = parsedID
 
 	return s.regionsRepo.AddNewRegion(context.Background(), proxy.Region)
 }

@@ -14,6 +14,7 @@ func NewRouter(
 	authService *services.AuthService,
 	userService *services.UserService,
 	clientService *services.ClientService,
+	regionService *services.RegionService,
 	commentService *services.CommentService,
 	contactService *services.ContactService,
 	deviceService *services.DeviceService,
@@ -29,6 +30,7 @@ func NewRouter(
 	authHandler := &AuthHandler{authService}
 	userHandler := &UserHandler{userService}
 	clientHandler := &ClientHandler{clientService}
+	regionHandler := &RegionHandler{regionService}
 	commentHandler := &CommentHandler{commentService}
 	contactHandler := &ContactHandler{contactService}
 	deviceHandler := &DeviceHandler{deviceService}
@@ -88,6 +90,10 @@ func NewRouter(
 				r.Post("/", clientHandler.CreateClient)
 				r.Patch("/{uuid}", clientHandler.UpdateClient)
 				r.Delete("/{uuid}", clientHandler.DeleteClient)
+			})
+
+			r.Route("/regions", func(r chi.Router) {
+				r.Get("/", regionHandler.ListAllRegions)
 			})
 
 			r.Route("/comments", func(r chi.Router) {
