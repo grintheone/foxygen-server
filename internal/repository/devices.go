@@ -47,7 +47,7 @@ func (r *deviceRepository) GetDeviceByID(ctx context.Context, uuid uuid.UUID) (*
 	query := `
 		SELECT
 	 		d.*,
-			cl.title as classificator
+			cl.title as classificator_title
 		FROM devices d
 		LEFT JOIN classificators cl ON d.classificator = cl.id
 		WHERE d.id = $1

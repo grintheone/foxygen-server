@@ -40,7 +40,7 @@ type Device struct {
 
 type DeviceSinglePage struct {
 	Device
-	Classificator string `json:"classificator" db:"classificator"`
+	ClassificatorTitle *string `json:"classificator_title" db:"classificator_title"`
 }
 
 type DeviceRemoteOption struct {

@@ -151,7 +151,7 @@ paths:
 
     /devices/{id}:
         get:
-          description: Retrieve detailed information about a specific device including classificator title
+          description: Retrieve detailed information about a specific device including classificator ID and title
           parameters:
             - name: id
               in: path
@@ -326,6 +326,7 @@ components:
         classificator:
           type: string
           format: uuid
+          nullable: true
           description: UUID of the associated classificator
         serial_number:
           type: string
@@ -343,7 +344,6 @@ components:
           example: false
       required:
         - id
-        - classificator
         - serial_number
         - connected_to_lis
         - is_used
@@ -357,6 +357,12 @@ components:
               description: Unique identifier for the device
             classificator:
               type: string
+              format: uuid
+              nullable: true
+              description: UUID of the associated classificator
+            classificator_title:
+              type: string
+              nullable: true
               description: Title of the associated classificator
             serial_number:
               type: string
@@ -375,7 +381,6 @@ components:
               example: false
           required:
             - id
-            - classificator
             - serial_number
             - connected_to_lis
             - is_used
