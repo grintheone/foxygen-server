@@ -15,6 +15,8 @@ func NewRouter(
 	userService *services.UserService,
 	clientService *services.ClientService,
 	regionService *services.RegionService,
+	manufacturerService *services.ManufacturerService,
+	researchTypeService *services.ResearchTypeService,
 	commentService *services.CommentService,
 	contactService *services.ContactService,
 	deviceService *services.DeviceService,
@@ -31,6 +33,8 @@ func NewRouter(
 	userHandler := &UserHandler{userService}
 	clientHandler := &ClientHandler{clientService}
 	regionHandler := &RegionHandler{regionService}
+	manufacturerHandler := &ManufacturerHandler{manufacturerService}
+	researchTypeHandler := &ResearchTypeHandler{researchTypeService}
 	commentHandler := &CommentHandler{commentService}
 	contactHandler := &ContactHandler{contactService}
 	deviceHandler := &DeviceHandler{deviceService}
@@ -94,6 +98,14 @@ func NewRouter(
 
 			r.Route("/regions", func(r chi.Router) {
 				r.Get("/", regionHandler.ListAllRegions)
+			})
+
+			r.Route("/manufacturers", func(r chi.Router) {
+				r.Get("/", manufacturerHandler.ListAllManufacturers)
+			})
+
+			r.Route("/research-types", func(r chi.Router) {
+				r.Get("/", researchTypeHandler.ListAllResearchTypes)
 			})
 
 			r.Route("/comments", func(r chi.Router) {

@@ -13,6 +13,7 @@ type Manufacturer struct {
 }
 
 type ManufacturerRepo interface {
+	ListAllManufacturers(ctx context.Context) ([]*Manufacturer, error)
 	AddNewManufacturer(ctx context.Context, manufacturer Manufacturer) error
 }
 
@@ -22,6 +23,17 @@ type manufacturerRepo struct {
 
 func NewManufacturerRepo(db *sqlx.DB) *manufacturerRepo {
 	return &manufacturerRepo{db}
+}
+
+func (r *manufacturerRepo) ListAllManufacturers(ctx context.Context) ([]*Manufacturer, error) {
+	var manufacturers []*Manufacturer
+
+	err := r.db.SelectContext(ctx, &manufacturers, `SELECT id, title FROM manufacturers ORDER BY title ASC`)
+	if err != nil {
+		return nil, err
+	}
+
+	return manufacturers, nil
 }
 
 func (r *manufacturerRepo) AddNewManufacturer(ctx context.Context, manufacturer Manufacturer) error {

@@ -100,10 +100,12 @@ func NewApp(cfg *config.Config, importFile *string) (*App, error) {
 	// Regions
 	regionsRepo := repository.NewRegionRepo(db)
 	regionService := services.NewRegionService(regionsRepo)
-	// Researh Type
+	// Research Types
 	researchTypeRepo := repository.NewResearchTypeRepo(db)
-	// Manufacturer
+	researchTypeService := services.NewResearchTypeService(researchTypeRepo)
+	// Manufacturers
 	manufacturerRepo := repository.NewManufacturerRepo(db)
+	manufacturerService := services.NewManufacturerService(manufacturerRepo)
 
 	importService := services.NewImportService(
 		*departmentService,
@@ -135,6 +137,8 @@ func NewApp(cfg *config.Config, importFile *string) (*App, error) {
 		userService,
 		clientService,
 		regionService,
+		manufacturerService,
+		researchTypeService,
 		commentService,
 		contactService,
 		deviceService,
